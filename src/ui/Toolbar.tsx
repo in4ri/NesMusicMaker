@@ -5,6 +5,7 @@ import { REGIONS } from '../core/tables';
 import { currentPattern, usePlayhead, useStore } from '../model/store';
 import { CHANNELS, PPQ, ticksPerBar } from '../model/types';
 import { PATTERN_COLORS } from '../model/defaults';
+import { HardwareButton } from './HardwareCheck';
 import { MidiMenu, RecordButton } from './MidiControls';
 
 function Position() {
@@ -52,8 +53,9 @@ export function Toolbar({ onHelp }: { onHelp: () => void }) {
         <button title="New project (Ctrl+N)" onClick={newProject}>New</button>
         <button title="Open project (Ctrl+O)" onClick={openProject}>Open</button>
         <button title="Save project (Ctrl+S)" onClick={() => saveProject()}>Save{s.dirty ? '*' : ''}</button>
-        <button title="Export audio (Ctrl+E)" onClick={exportWav}>WAV</button>
-        <button title="Export NES music file (Ctrl+Shift+E)" onClick={exportNsf}>NSF</button>
+        <button title="Export audio (Ctrl+E)" onClick={() => exportWav()}>WAV</button>
+        <button title="Export NES music file (Ctrl+Shift+E)" onClick={() => exportNsf()}>NSF</button>
+        <HardwareButton />
       </div>
       <div className="sep" />
       <div className="group transport">

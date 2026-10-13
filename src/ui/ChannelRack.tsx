@@ -1,15 +1,16 @@
 import { useRef } from 'react';
 import { playheadTick, previewNote } from '../audio/sync';
+import { lowestPitch, resolveOverlaps } from '../core/hardware';
 import { noteName } from '../core/tables';
 import { makeNote } from '../model/defaults';
 import { currentPattern, usePlayhead, useStore } from '../model/store';
 import { CHANNELS, TICKS_PER_STEP, type ChannelInfo } from '../model/types';
 
-export function pitchOptions(kind: ChannelInfo['kind'], sampleNames: string[]) {
+export function pitchOptions(kind: ChannelInfo['kind'], sampleNames: string[], lowest = 24) {
   if (kind === 'noise') return Array.from({ length: 16 }, (_, i) => ({ value: i, label: `Noise ${i.toString(16).toUpperCase()}` }));
   if (kind === 'dmc') return sampleNames.map((n, i) => ({ value: i, label: n }));
   const out = [];
-  for (let p = 96; p >= 24; p--) out.push({ value: p, label: noteName(p) });
+  for (let p = 96; p >= Math.max(24, lowest); p--) out.push({ value: p, label: noteName(p) });
   return out;
 }
 
@@ -43,11 +44,12 @@ export function ChannelRack() {
       if (mode === 'remove') {
         p.notes[ch] = list.filter((n) => !existing.includes(n));
       } else if (!existing.length) {
-        const inst = CHANNELS[ch].kind === 'dmc' ? '' : settings.instrument || song.instruments[0]?.id;
-        list.push(makeNote(tick, TICKS_PER_STEP, settings.stepPitch, inst));
+        // '' = use the channel's sound. A step inside a longer note shortens that note (one note at a time).
+        const note = makeNote(tick, TICKS_PER_STEP, settings.stepPitch, '');
+        p.notes[ch] = resolveOverlaps([...list, note], ch, new Set([note.id]));
       }
     });
-    if (mode === 'add') previewNote(ch, settings.stepPitch, settings.instrument);
+    if (mode === 'add') previewNote(ch, settings.stepPitch, '');
   };
 
   const onStepDown = (e: React.MouseEvent, ch: number, step: number, on: boolean) => {
@@ -66,13 +68,31 @@ export function ChannelRack() {
   const toggleMute = (ch: number) => s.set({ mutes: s.mutes.map((m, i) => (i === ch ? !m : m)) });
   const toggleSolo = (ch: number) => s.set({ solo: s.solo === ch ? -1 : ch });
 
+  /** Change the step note, and re-pitch this pattern's plain one-step notes that were on the old step note. */
+  const setStepNote = (ch: number, v: number) => {
+    const old = s.song.channels[ch].stepPitch;
+    s.update((song) => {
+      song.channels[ch].stepPitch = v;
+      const p = song.patterns.find((x) => x.id === pattern.id)!;
+      for (const n of p.notes[ch]) if (n.pitch === old && n.length === TICKS_PER_STEP) n.pitch = v;
+      p.notes[ch] = resolveOverlaps(p.notes[ch], ch);
+    });
+    previewNote(ch, v, '');
+  };
+
   return (
     <div className="rack" onContextMenu={(e) => e.preventDefault()}>
       <PlayingStep steps={steps} />
+      <div className="rack-row rack-header">
+        <span className="rack-header-gap" />
+        <span className="rack-select" title="The instrument this whole channel plays with">Sound</span>
+        <span className="rack-pitch" title="The note a step plays">Step note</span>
+        <span>Steps: click to add or remove, drag to paint</span>
+      </div>
       {CHANNELS.map((c) => {
         const notes = pattern.notes[c.index];
         const settings = s.song.channels[c.index];
-        const options = pitchOptions(c.kind, s.song.samples.map((x) => x.name));
+        const options = pitchOptions(c.kind, s.song.samples.map((x) => x.name), lowestPitch(c.index, s.song.region));
         return (
           <div key={c.index} className="rack-row">
             <Led ch={c.index} />
@@ -98,8 +118,16 @@ export function ChannelRack() {
               <select
                 className="rack-select"
                 value={settings.instrument}
-                title="Instrument for new notes on this channel"
-                onChange={(e) => s.update((song) => void (song.channels[c.index].instrument = e.target.value))}
+                title={
+                  c.kind === 'triangle'
+                    ? "This channel's sound. The NES triangle has no volume or tone control, so instruments only change its pitch effects (arpeggio, pitch) and note length."
+                    : "This channel's sound: every note on it plays with this instrument (unless a note has its own)"
+                }
+                onChange={(e) => {
+                  const inst = e.target.value;
+                  s.update((song) => void (song.channels[c.index].instrument = inst));
+                  previewNote(c.index, settings.stepPitch, inst);
+                }}
               >
                 {s.song.instruments.map((i) => (
                   <option key={i.id} value={i.id}>{i.name}</option>
@@ -111,12 +139,12 @@ export function ChannelRack() {
             <select
               className="rack-pitch"
               value={settings.stepPitch}
-              title="Pitch / sample for steps"
-              onChange={(e) => {
-                const v = Number(e.target.value);
-                s.update((song) => void (song.channels[c.index].stepPitch = v));
-                previewNote(c.index, v, settings.instrument);
-              }}
+              title={
+                c.kind === 'dmc'
+                  ? 'The sample a step plays'
+                  : "The note a step plays. Changing it also moves this pattern's one-step notes that were on the old note."
+              }
+              onChange={(e) => setStepNote(c.index, Number(e.target.value))}
             >
               {options.length === 0 && <option value={0}>(none)</option>}
               {options.map((o) => (

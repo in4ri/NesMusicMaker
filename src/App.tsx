@@ -10,6 +10,7 @@ import { ChannelRack } from './ui/ChannelRack';
 import { InstrumentEditor } from './ui/InstrumentEditor';
 import { isTyping, PianoRoll } from './ui/PianoRoll';
 import { Playlist } from './ui/Playlist';
+import { HardwareCheckDialog } from './ui/HardwareCheck';
 import { MidiImportDialog, startMidiImport } from './ui/MidiImportDialog';
 import { Toolbar } from './ui/Toolbar';
 
@@ -217,6 +218,7 @@ export function App() {
         </div>
       </div>
       <MidiImportDialog />
+      <HardwareCheckDialog />
       <Toasts />
       {help && <Help onClose={() => setHelp(false)} />}
     </div>

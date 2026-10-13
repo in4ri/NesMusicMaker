@@ -262,13 +262,19 @@ export function InstrumentEditor() {
           ))}
         </div>
         <button
-          title="Make this the drawing instrument for the selected channel"
+          title="Make this the sound of the whole channel"
           onClick={() => s.update((song) => void (song.channels[ch].instrument = inst.id))}
           disabled={s.song.channels[ch].instrument === inst.id}
         >
-          Use on {CHANNELS[ch].name}
+          {s.song.channels[ch].instrument === inst.id ? `${CHANNELS[ch].name} uses this` : `Use on ${CHANNELS[ch].name}`}
         </button>
       </div>
+      {kind === 'triangle' && (
+        <div className="small" style={{ marginBottom: 8, color: 'var(--accent)' }}>
+          Heads up: the NES triangle has no volume or tone control. On the Triangle channel only the arpeggio and pitch envelopes are heard, and
+          the volume envelope just switches the note off when it reaches 0. Audition on Pulse 1 to hear the full instrument.
+        </div>
+      )}
       <div className="small" style={{ marginBottom: 10 }}>
         Envelopes run once per frame (60 per second on NTSC, 50 on PAL). Draw values with the mouse. Click the <b>loop</b> strip to loop from a frame, and the <b>release</b> strip to set where the envelope jumps when the note ends. Tip: you can play notes with your computer keyboard (Z–M, Q–U rows).
       </div>

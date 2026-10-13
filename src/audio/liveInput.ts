@@ -6,6 +6,7 @@ import { toast } from '../actions';
 import { makeNote } from '../model/defaults';
 import { currentPattern, useStore } from '../model/store';
 import { CHANNELS, patternLength, type ArpStyle, type NoteFx, type Pattern } from '../model/types';
+import { fitToChannel, resolveOverlaps } from '../core/hardware';
 import { audibleTick, previewNoteHeld } from './sync';
 
 export interface InputState {
@@ -71,10 +72,12 @@ function volumeFor(velocity: number) {
   return useInput.getState().velocity ? Math.max(1, Math.round((velocity / 127) * 15)) : 15;
 }
 
+/** Instrument for played/recorded notes: '' (the channel's sound), or the instrument open in the editor if it differs. */
 function instrumentFor(channel: number) {
   const s = useStore.getState();
   if (CHANNELS[channel].kind === 'dmc') return '';
-  return s.view === 'instrument' ? s.selectedInstrumentId : s.song.channels[channel].instrument || s.song.instruments[0]?.id || '';
+  if (s.view === 'instrument' && s.selectedInstrumentId !== s.song.channels[channel].instrument) return s.selectedInstrumentId;
+  return '';
 }
 
 function restartPreview() {
@@ -134,6 +137,7 @@ function endRecording(target: ReturnType<typeof recordTarget>) {
   editPattern(rec.patternId, (p) => {
     const n = p.notes[rec.channel].find((x) => x.id === rec.noteId);
     if (n) n.length = length;
+    p.notes[rec.channel] = resolveOverlaps(p.notes[rec.channel], rec.channel, new Set([rec.noteId]));
   });
 }
 
@@ -165,8 +169,8 @@ function recordChange() {
   const channel = heldChannel;
   const note = makeNote(start, useStore.getState().snap, snd.pitch, instrumentFor(channel), volumeFor(heldVelocity), snd.fx);
   editPattern(target.pattern.id, (p) => {
-    p.notes[channel] = p.notes[channel].filter((n) => n.tick !== start); // replace on overdub
-    p.notes[channel].push(note);
+    // Overdub: the new note replaces one starting at the same time and shortens one it lands inside.
+    p.notes[channel] = resolveOverlaps([...p.notes[channel], note], channel, new Set([note.id]));
   });
   recording = { noteId: note.id, patternId: target.pattern.id, channel, start, startedAt: performance.now() };
 }
@@ -185,8 +189,7 @@ function commitStep() {
   const note = makeNote(tick, s.snap, snd.pitch, instrumentFor(channel), volumeFor(heldVelocity), snd.fx);
   s.update((song) => {
     const p = song.patterns.find((x) => x.id === pattern.id)!;
-    p.notes[channel] = p.notes[channel].filter((n) => n.tick !== tick);
-    p.notes[channel].push(note);
+    p.notes[channel] = resolveOverlaps([...p.notes[channel], note], channel, new Set([note.id]));
   });
   useInput.setState({ stepCursor: (tick + s.snap) % length });
 }
@@ -197,6 +200,8 @@ function commitStep() {
 export function inputNoteOn(key: string, pitch: number, velocity: number) {
   if (held.has(key)) return;
   const s = useStore.getState();
+  // Keys below what a pulse channel can play are moved up an octave (or more).
+  pitch = fitToChannel(pitch, held.size ? heldChannel : s.selectedChannel, s.song.region);
   if (!held.size) {
     heldChannel = s.selectedChannel;
     heldVelocity = velocity;

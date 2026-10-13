@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { playheadTick } from '../audio/sync';
 import { AUTOMATION_PARAMS, automationActiveAt, automationValueAt, findLane, sortedLanePoints, type ParamInfo } from '../core/automation';
 import { songEndTick } from '../core/compiler';
+import { clipConflicts } from '../core/hardware';
 import { laneKey, usePlayhead, useStore, type AppState } from '../model/store';
 import { CHANNELS, PLAYLIST_TRACKS, TICKS_PER_STEP, newId, patternLength, ticksPerBar, type AutomationPoint, type Clip } from '../model/types';
 
@@ -180,6 +181,27 @@ export function Playlist() {
         g.strokeStyle = '#fff';
         g.lineWidth = 1;
         g.strokeRect(x + 1.5, y + 2.5, w - 3, TRACK_H - 6);
+      }
+    }
+
+    // Clips that play the same channel at the same time: only one note per channel can sound.
+    for (const c of clipConflicts(song)) {
+      const x0 = Math.max(HEAD_W, G.x(c.start));
+      const x1 = G.x(c.end);
+      if (x1 < HEAD_W || x0 > W) continue;
+      for (const id of c.clips) {
+        const clip = song.playlist.find((cl) => cl.id === id);
+        if (!clip) continue;
+        const y = G.y(clip.track);
+        g.fillStyle = 'rgba(255,60,60,0.35)';
+        g.fillRect(x0, y + 2, x1 - x0, TRACK_H - 5);
+        g.strokeStyle = '#ff6b6b';
+        g.lineWidth = 2;
+        g.strokeRect(x0 + 1, y + 3, x1 - x0 - 2, TRACK_H - 7);
+        g.lineWidth = 1;
+        g.fillStyle = '#ffe3e3';
+        g.font = `bold 10px ${font}`;
+        g.fillText(`⚠ ${c.channels.map((ch) => CHANNELS[ch].short).join(' ')}`, x0 + 4, y + TRACK_H - 10);
       }
     }
 
@@ -666,6 +688,7 @@ export function Playlist() {
         <ul className="help-list">
           <li>Automation: click to add a point, drag to move (Ctrl = no snap), right-click or double-click to delete</li>
           <li>Click empty: place selected pattern</li>
+          <li>Red ⚠ = two clips play the same channel at once (only one can sound)</li>
           <li>Drag clip: move (Ctrl = beat snap)</li>
           <li>Shift-drag clip: duplicate</li>
           <li>Right-click: delete clip</li>

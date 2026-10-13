@@ -4,6 +4,7 @@ import { compileSong } from '../src/core/compiler';
 import { parseMidi } from '../src/core/midi';
 import { buildMidiImport, midiSources, suggestMappings, type MidiImportOptions } from '../src/core/midiImport';
 import { demoSong } from '../src/model/defaults';
+import { adoptChannelSounds } from '../src/model/migrate';
 import { PPQ, arpOffsetAt, arpSequence, newId } from '../src/model/types';
 
 /** Build a minimal format-1 MIDI file. Events: [deltaTicks, ...bytes]. */
@@ -84,6 +85,9 @@ describe('MIDI import', () => {
     const kick = song.instruments.find((i) => i.name === 'Noise Kick')!.id;
     expect(drums[0]).toMatchObject({ tick: 0, pitch: 6, instrument: kick });
     expect(drums[1].pitch).toBe(15);
+    // Pitched parts follow their channel's sound rather than storing an instrument per note.
+    expect(first.notes[0].every((n) => n.instrument === '')).toBe(true);
+    expect(r.channelSounds[0]).toBe(mappings[sources.findIndex((s) => s.name === 'Lead')].instrument);
   });
 
   it('reuses identical patterns and skips empty bars', () => {
@@ -208,3 +212,42 @@ describe('duty and detune automation', () => {
   });
 });
 
+
+describe('channel sounds', () => {
+  it("notes without their own instrument follow the channel's sound", () => {
+    const song = demoSong();
+    const volumesOf = (s: typeof song) => {
+      const c = compileSong(s, { mode: 'pattern', patternId: s.patterns[0].id });
+      const vols: number[] = [];
+      for (let i = 0; i < c.writes.length; i += 2) if (c.writes[i] === 0x00) vols.push(c.writes[i + 1]);
+      return vols.join(',');
+    };
+    const before = volumesOf(song);
+    song.channels[0].instrument = song.instruments.find((i) => i.name === 'Thin 12.5%')!.id;
+    expect(volumesOf(song)).not.toBe(before);
+  });
+
+  it('converts old projects so channels adopt the instrument all their notes used', () => {
+    const song = demoSong();
+    const pluck = song.instruments.find((i) => i.name === 'Pluck')!.id;
+    const lead = song.instruments.find((i) => i.name === 'Lead 25%')!.id;
+    // Old style: every Pulse 1 note carries Pluck explicitly; channel still says Lead.
+    for (const n of song.patterns[0].notes[0]) n.instrument = pluck;
+    song.channels[0].instrument = lead;
+    adoptChannelSounds(song);
+    expect(song.channels[0].instrument).toBe(pluck);
+    expect(song.patterns[0].notes[0].every((n) => n.instrument === '')).toBe(true);
+    // Mixed drums keep their per-note instruments.
+    expect(song.patterns[0].notes[3].some((n) => n.instrument !== '')).toBe(true);
+  });
+
+  it('leaves new-style projects alone when a few notes have their own instrument', () => {
+    const song = demoSong();
+    const thin = song.instruments.find((i) => i.name === 'Thin 12.5%')!.id;
+    const channelSound = song.channels[0].instrument;
+    song.patterns[0].notes[0][0].instrument = thin; // one override, the rest follow the channel
+    adoptChannelSounds(song);
+    expect(song.channels[0].instrument).toBe(channelSound);
+    expect(song.patterns[0].notes[0][0].instrument).toBe(thin);
+  });
+});

@@ -4,6 +4,7 @@
 import { emptyPattern, makeNote } from '../model/defaults';
 import { CHANNELS, PPQ, newId, type ArpStyle, type Clip, type Note, type NoteFx, type Pattern, type Song } from '../model/types';
 import { songEndTick } from './compiler';
+import { fitToChannel } from './hardware';
 import type { MidiFile, MidiNote } from './midi';
 
 export interface MidiSource {
@@ -48,6 +49,8 @@ export interface MidiImportResult {
   beatsPerBar: number;
   replace: boolean;
   droppedNotes: number;
+  /** Channel sounds to apply (replace mode sets each channel to its part's chosen instrument). */
+  channelSounds: string[];
 }
 
 /** General MIDI drum notes → noise pitch + a default instrument name. */
@@ -111,11 +114,9 @@ export function suggestMappings(sources: MidiSource[], song: Song): SourceMappin
   return mappings;
 }
 
-function fitPitch(pitch: number, target: number): number {
-  const kind = CHANNELS[target].kind;
-  if (kind === 'noise') return ((pitch % 16) + 16) % 16;
-  const lo = kind === 'triangle' ? 21 : 33; // lowest note the hardware period can reach
-  while (pitch < lo) pitch += 12;
+function fitPitch(pitch: number, target: number, region: Song['region']): number {
+  if (CHANNELS[target].kind === 'noise') return ((pitch % 16) + 16) % 16;
+  pitch = fitToChannel(pitch, target, region); // up whole octaves to the lowest note the hardware can reach
   while (pitch > 108) pitch -= 12;
   return pitch;
 }
@@ -160,6 +161,17 @@ export function buildMidiImport(song: Song, file: MidiFile, sources: MidiSource[
     const [num, den] = file.timeSignature;
     beatsPerBar = Math.max(1, Math.min(16, Math.round((num * 4) / den)));
   }
+  // In replace mode each channel takes the instrument chosen for its (first, non-drum) part as its sound.
+  const channelSounds = song.channels.map((c) => c.instrument);
+  if (replace) {
+    const order = sources.map((src, i) => ({ src, m: mappings[i] })).sort((a, b) => Number(a.src.isDrums) - Number(b.src.isDrums));
+    const assigned = new Set<number>();
+    for (const { m } of order) {
+      if (!m || m.target < 0 || m.target >= 4 || assigned.has(m.target) || !m.instrument) continue;
+      channelSounds[m.target] = m.instrument;
+      assigned.add(m.target);
+    }
+  }
   const scale = PPQ / file.ppq;
   const q = Math.max(1, Math.round(opts.quantize));
   const instByName = new Map(song.instruments.map((i) => [i.name, i.id]));
@@ -172,7 +184,7 @@ export function buildMidiImport(song: Song, file: MidiFile, sources: MidiSource[
     if (!m || m.target < 0 || m.target >= 4) return;
     const fromSource: Candidate[] = [];
     for (const n of src.notes) {
-      let pitch = fitPitch(n.pitch, m.target);
+      let pitch = fitPitch(n.pitch, m.target, song.region);
       let instrument = m.instrument;
       if (CHANNELS[m.target].kind === 'noise' && src.isDrums) {
         const drum = GM_DRUMS[n.pitch];
@@ -217,12 +229,14 @@ export function buildMidiImport(song: Song, file: MidiFile, sources: MidiSource[
   for (let k = 0; k < segments; k++) {
     const s0 = k * patternTicks;
     const s1 = s0 + patternTicks;
-    const notes: Note[][] = mono.map((list) =>
+    const notes: Note[][] = mono.map((list, ch) =>
       list
         .filter((c) => c.tick >= s0 && c.tick < s1)
         .map((c) => {
           const fx: NoteFx = c.arp ? { arp: c.arp, arpStyle: opts.arpStyle, arpSpeed: opts.arpSpeed } : {};
-          return makeNote(c.tick - s0, Math.min(c.length, s1 - c.tick), c.pitch, c.instrument, c.volume, fx);
+          // Notes using the channel's own sound follow it; anything else (e.g. GM drum sounds) is a per-note instrument.
+          const instrument = c.instrument === channelSounds[ch] ? '' : c.instrument;
+          return makeNote(c.tick - s0, Math.min(c.length, s1 - c.tick), c.pitch, instrument, c.volume, fx);
         }),
     );
     if (notes.every((l) => !l.length)) continue;
@@ -237,5 +251,5 @@ export function buildMidiImport(song: Song, file: MidiFile, sources: MidiSource[
     clips.push({ id: newId('c'), pattern: pattern.id, track: 0, start: startTick + s0 });
   }
 
-  return { patterns, clips, bpm, beatsPerBar, replace, droppedNotes };
+  return { patterns, clips, bpm, beatsPerBar, replace, droppedNotes, channelSounds };
 }

@@ -3,11 +3,13 @@
 import { create } from 'zustand';
 import { engine } from './audio/engine';
 import { compileSong } from './core/compiler';
+import { checkSong } from './core/hardwareCheck';
 import { bytesToBase64, encodeDmc, layoutDmc } from './core/dmc';
 import { buildNsf } from './core/nsf';
 import { renderWav } from './core/wav';
 import { defaultInstruments, emptyPattern, emptySong, env, INSTRUMENT_COLORS } from './model/defaults';
 import { currentPattern, fixSelection, useStore } from './model/store';
+import { adoptChannelSounds } from './model/migrate';
 import { CHANNELS, newId, type Instrument, type Song } from './model/types';
 import { openProjectFile, pickFile, saveBinaryFile, saveProjectFile } from './platform/files';
 
@@ -57,6 +59,7 @@ export function normalizeSong(raw: unknown): Song {
   song.playlist = s.playlist ?? [];
   song.channels = CHANNELS.map((_, ch) => s.channels?.[ch] ?? base.channels[ch]);
   song.automation = (s.automation ?? []).filter((l) => l && Array.isArray(l.points));
+  adoptChannelSounds(song);
   return song;
 }
 
@@ -91,7 +94,18 @@ export async function saveProject(saveAs = false) {
 
 // ---------- Export ----------
 
-export async function exportWav() {
+/** The hardware check window; `pendingExport` is set when it was opened by an export. */
+export const useCheck = create<{ open: boolean; pendingExport: 'wav' | 'nsf' | null }>(() => ({ open: false, pendingExport: null }));
+
+/** Show the hardware check instead of exporting if anything won't play as drawn. */
+function blockedByCheck(kind: 'wav' | 'nsf') {
+  if (!checkSong(useStore.getState().song).some((i) => i.severity === 'error')) return false;
+  useCheck.setState({ open: true, pendingExport: kind });
+  return true;
+}
+
+export async function exportWav(force = false) {
+  if (!force && blockedByCheck('wav')) return;
   const { song } = useStore.getState();
   toast('Rendering WAV…');
   await new Promise((r) => setTimeout(r, 30));
@@ -105,7 +119,8 @@ export async function exportWav() {
   }
 }
 
-export async function exportNsf() {
+export async function exportNsf(force = false) {
+  if (!force && blockedByCheck('nsf')) return;
   const { song } = useStore.getState();
   try {
     const compiled = compileSong(song, { mode: 'song' });
@@ -209,12 +224,13 @@ export function deleteInstrument(id: string) {
     toast('You need at least one instrument', 'error');
     return;
   }
-  const used = s.song.patterns.some((p) => p.notes.some((list) => list.some((n) => n.instrument === id)));
-  if (used && !window.confirm('This instrument is used by notes. Delete it anyway? Those notes will use the first instrument.')) return;
+  const used =
+    s.song.channels.some((c) => c.instrument === id) || s.song.patterns.some((p) => p.notes.some((list) => list.some((n) => n.instrument === id)));
+  if (used && !window.confirm('This instrument is in use. Delete it anyway? Channels using it will switch to the first instrument.')) return;
   s.update((song) => {
     song.instruments = song.instruments.filter((i) => i.id !== id);
     const fallback = song.instruments[0].id;
-    for (const p of song.patterns) for (const list of p.notes) for (const n of list) if (n.instrument === id) n.instrument = fallback;
+    for (const p of song.patterns) for (const list of p.notes) for (const n of list) if (n.instrument === id) n.instrument = '';
     for (const c of song.channels) if (c.instrument === id) c.instrument = fallback;
   });
   fixSelection();
