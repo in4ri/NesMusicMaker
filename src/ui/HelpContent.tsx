@@ -35,6 +35,7 @@ export function PianoRollHelp() {
       <ul>
         <li><b>Click</b> an empty spot to add a note. Drag it to move it, or drag its right edge to make it longer.</li>
         <li><b>Right-click</b> a note to delete it.</li>
+        <li><b>Click a piano key</b> to select every note on that key, and Shift- or Cmd-click to add more keys. Then press <b>↑/↓</b> to move them up or down (hold Shift for a whole octave), which is handy for changing key.</li>
         <li><b>Volume lane</b> (bottom): drag the stalks to make notes louder or quieter.</li>
         <li><b>Right-hand panel</b>: select notes to change their volume, give them effects (vibrato, bend, glide) or turn them into an <b>arpeggio chord</b>.</li>
       </ul>
@@ -70,6 +71,11 @@ export function PlaylistHelp() {
         <li><b>Det</b>: tune a channel slightly sharp or flat (try Pulse 2 at +8 against Pulse 1 for a chorus effect).</li>
       </ul>
       <p>Choose which lanes show on the right. Automation is heard in SONG mode and in exports.</p>
+      <h5>Changing key</h5>
+      <p>
+        <b>Transpose song…</b> (on the right, or Edit → Transpose Song) moves every note in every pattern up or down on the channels you
+        choose. One Cmd+Z undoes it.
+      </p>
     </>
   );
 }

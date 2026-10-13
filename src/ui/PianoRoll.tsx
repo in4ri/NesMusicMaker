@@ -344,11 +344,14 @@ export function PianoRoll() {
     g.rect(0, RULER_H, KEYS_W, geo.gridBottom - RULER_H);
     g.clip();
     g.font = `${Math.min(10, rowH - 3)}px ${getComputedStyle(document.body).fontFamily}`;
+    // Keys that have selected notes are lit up.
+    const selectedPitches = new Set(pattern.notes[ch].filter((n) => selected.has(n.id)).map((n) => n.pitch));
     rows.forEach((row, i) => {
       const y = geo.y(i);
       if (y + rowH < RULER_H || y > geo.gridBottom) return;
       const pitched = kind === 'pulse' || kind === 'triangle';
-      g.fillStyle = pitched ? (row.black ? '#202228' : '#e9ecef') : row.black ? '#2b2f38' : '#353a46';
+      const lit = selectedPitches.has(row.pitch);
+      g.fillStyle = lit ? (row.black ? '#b8732a' : '#f7a440') : pitched ? (row.black ? '#202228' : '#e9ecef') : row.black ? '#2b2f38' : '#353a46';
       g.fillRect(0, y, pitched && row.black ? KEYS_W * 0.62 : KEYS_W - 1, rowH - 1);
       if (!pitched || row.c || rowH >= 14) {
         g.fillStyle = pitched && !row.black ? '#333' : '#c8cdd8';
@@ -468,8 +471,22 @@ export function PianoRoll() {
       return;
     }
     if (x < KEYS_W) {
+      // Clicking a key selects every note on it (Shift/Cmd/Ctrl-click adds or removes that key's notes).
       const row = rows[geo.rowAt(y)];
-      if (row && geo.rowAt(y) <= lowIdx) audition({ pitch: row.pitch, instrument: '', volume: 15, fx: {} });
+      if (!row) return;
+      if (geo.rowAt(y) <= lowIdx) audition({ pitch: row.pitch, instrument: '', volume: 15, fx: {} });
+      const onKey = pattern.notes[ch].filter((n) => n.pitch === row.pitch).map((n) => n.id);
+      if (e.shiftKey || e.metaKey || e.ctrlKey) {
+        const current = new Set(st.selectedNoteIds);
+        const allSelected = onKey.length > 0 && onKey.every((id) => current.has(id));
+        for (const id of onKey) {
+          if (allSelected) current.delete(id);
+          else current.add(id);
+        }
+        st.set({ selectedNoteIds: [...current] });
+      } else {
+        st.set({ selectedNoteIds: onKey });
+      }
       return;
     }
 

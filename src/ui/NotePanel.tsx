@@ -243,6 +243,7 @@ export function NotePanel() {
       <h4>Mouse</h4>
       <ul className="help-list">
         <li>Click: add note, drag to move</li>
+        <li>Click a piano key: select all notes on it (Shift/Cmd-click: add more keys)</li>
         <li>Drag right edge: resize</li>
         <li>Right-click: delete</li>
         <li>Shift/Ctrl-drag: select box</li>
@@ -252,7 +253,7 @@ export function NotePanel() {
       </ul>
       <h4>Keys</h4>
       <ul className="help-list">
-        <li><span className="kbd">↑↓</span> transpose (Shift = octave)</li>
+        <li><span className="kbd">↑↓</span> transpose selection (Shift = octave)</li>
         <li><span className="kbd">←→</span> nudge by snap</li>
         <li><span className="kbd">Ctrl+C/X/V</span> copy/cut/paste</li>
         <li><span className="kbd">Ctrl+D</span> duplicate after</li>

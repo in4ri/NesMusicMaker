@@ -61,6 +61,8 @@ function buildMenu() {
         { role: 'copy' },
         { role: 'paste' },
         { label: 'Select All', accelerator: 'CmdOrCtrl+A', click: () => send('select-all') },
+        { type: 'separator' },
+        { label: 'Transpose Song…', click: () => send('transpose') },
       ],
     },
     {

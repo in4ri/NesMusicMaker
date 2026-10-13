@@ -15,6 +15,7 @@ import { InstrumentHelp, PianoRollHelp, PlaylistHelp } from './ui/HelpContent';
 import { HelpButton } from './ui/Popover';
 import { MidiImportDialog, startMidiImport } from './ui/MidiImportDialog';
 import { NsfImportDialog, startNsfImport } from './ui/NsfImportDialog';
+import { openTranspose, TransposeDialog } from './ui/TransposeDialog';
 import { Toolbar } from './ui/Toolbar';
 
 // Computer keyboard piano (layout-independent key codes), FL/tracker style.
@@ -46,6 +47,7 @@ function runCommand(cmd: string) {
     case 'select-all': return typing ? void document.execCommand('selectAll') : selectAllNotes();
     case 'import-midi': return void startMidiImport();
     case 'import-nsf': return void startNsfImport();
+    case 'transpose': return openTranspose();
   }
 }
 
@@ -239,6 +241,7 @@ export function App() {
       <MidiImportDialog />
       <HardwareCheckDialog />
       <NsfImportDialog />
+      <TransposeDialog />
       <Toasts />
       {help && <Help onClose={() => setHelp(false)} />}
     </div>

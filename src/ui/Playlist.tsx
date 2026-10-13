@@ -3,6 +3,7 @@ import { playheadTick } from '../audio/sync';
 import { AUTOMATION_PARAMS, automationActiveAt, automationValueAt, findLane, sortedLanePoints, type ParamInfo } from '../core/automation';
 import { songEndTick } from '../core/compiler';
 import { clipConflicts } from '../core/hardware';
+import { openTranspose } from './TransposeDialog';
 import { laneKey, usePlayhead, useStore, type AppState } from '../model/store';
 import { CHANNELS, PLAYLIST_TRACKS, TICKS_PER_STEP, newId, patternLength, ticksPerBar, type AutomationPoint, type Clip } from '../model/types';
 
@@ -636,6 +637,9 @@ export function Playlist() {
             }}
           />
         </div>
+        <button style={{ marginBottom: 8 }} onClick={openTranspose} title="Move the whole song up or down in pitch">
+          Transpose song…
+        </button>
         <div className="small" style={{ marginBottom: 8 }}>
           Length: {Math.round(songEndTick(s.song) / ticksPerBar(s.song))} bars. NSF exports loop forever from the loop point, like game music.
         </div>

@@ -19,6 +19,8 @@ Each channel plays one note at a time. The chip has no hardware effects: vibrato
 
 - **Channel rack**: FL-style step sequencer for all 5 channels, with mute/solo, a level LED, and a default instrument and pitch per channel.
 - **Piano roll**: draw, move, resize and delete notes; box-select, copy/paste, duplicate and transpose; a per-note volume lane; ghost notes from the other melodic channels.
+  Click a piano key to select every note on it (Shift/Cmd-click for more keys), then use ↑/↓ to move them.
+- **Transpose song** (Playlist panel or Edit menu): shift every pattern on chosen channels by up to an octave. Notes that would leave a channel's range move an octave instead.
 - **Per-note effects**: glide (legato portamento), pitch bend, vibrato, delay, cut, and duty/noise-mode override.
 - **Arpeggio chords**: give any note a chord shape (major, minor, 7ths, sus, power, octave… or custom offsets), a style (up, down, up-down, down-up, random, as entered) and a speed in frames per step. Change them later on any selection.
 - **Playlist**: arrange patterns on 8 tracks, set the play start and the loop point.

@@ -71,3 +71,29 @@ describe('hardware check', () => {
     expect(checkSong(song).some((i) => i.key.startsWith('clips'))).toBe(true);
   });
 });
+
+describe('transpose song', () => {
+  it('moves every pattern on the chosen channels and keeps notes playable', async () => {
+    const { transposeSong, previewTranspose } = await import('../src/core/transpose');
+    const song = demoSong();
+    const before = song.patterns.map((p) => p.notes.map((l) => l.map((n) => n.pitch)));
+    const stepBefore = song.channels.map((c) => c.stepPitch);
+    const r = transposeSong(song, 2, [0, 1, 2]);
+    expect(r.moved).toBe(before[0][0].length + before[0][1].length + before[0][2].length);
+    song.patterns.forEach((p, pi) => {
+      [0, 1, 2].forEach((ch) => p.notes[ch].forEach((n, i) => expect(n.pitch).toBe(before[pi][ch][i] + 2)));
+      p.notes[3].forEach((n, i) => expect(n.pitch).toBe(before[pi][3][i])); // drums untouched
+    });
+    expect(song.channels[0].stepPitch).toBe(stepBefore[0] + 2);
+    expect(song.channels[3].stepPitch).toBe(stepBefore[3]);
+    // Arpeggio chord shapes are relative, so they're unchanged.
+    expect(song.patterns[0].notes[1][0].fx.arp).toEqual([0, 3, 7]);
+
+    // Going down far enough to leave the pulse range moves those notes up an octave instead.
+    const low = demoSong();
+    low.patterns[0].notes[0].push(makeNote(0, 12, 34, ''));
+    expect(previewTranspose(low, -3, [0]).adjusted).toBe(1);
+    transposeSong(low, -3, [0]);
+    expect(low.patterns[0].notes[0].every((n) => n.pitch >= lowestPitch(0, 'ntsc'))).toBe(true);
+  });
+});
