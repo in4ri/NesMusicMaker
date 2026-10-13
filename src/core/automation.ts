@@ -41,8 +41,8 @@ export const AUTOMATION_PARAMS: ParamInfo[] = [
     neutral: -1,
     spanOnly: true,
     channels: [0, 1],
-    format: (v) => DUTY_LABELS[v] ?? String(v),
-    help: "Sets the pulse width between the first and last point, overriding the instrument's duty. Outside that span the instrument plays as normal.",
+    format: (v) => DUTY_LABELS[v] ?? String(v), // 75% sounds the same as 25% (it's the inverted wave)
+    help: "Sets the pulse width between the first and last point, overriding the instrument's duty. Outside that span the instrument plays as normal. 25% and 75% sound the same on a NES, so sweep through 12.5% and 50%.",
   },
   {
     param: 'detune',

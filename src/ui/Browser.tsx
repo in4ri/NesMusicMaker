@@ -1,4 +1,6 @@
 import { useEffect, useRef } from 'react';
+import { saveInstrumentPreset, saveSamplePreset } from '../library';
+import { PresetLibrary } from './PresetLibrary';
 import { addInstrument, deleteInstrument, deleteSample, importSample } from '../actions';
 import { previewNote } from '../audio/sync';
 import { base64ToBytes, decodeDmc, dmcSampleRate, layoutDmc } from '../core/dmc';
@@ -59,6 +61,7 @@ export function Browser() {
         >
           <span className="swatch" style={{ background: inst.color }} />
           <span className="name">{inst.name}</span>
+          <button className="mini" title="Save to your preset library (use it in any song)" onClick={(e) => (e.stopPropagation(), saveInstrumentPreset(inst))}>☆</button>
           <button className="mini" title="Duplicate" onClick={(e) => (e.stopPropagation(), addInstrument(inst))}>⧉</button>
           <button className="mini" title="Delete" onClick={(e) => (e.stopPropagation(), deleteInstrument(inst.id))}>✕</button>
         </div>
@@ -85,6 +88,7 @@ export function Browser() {
               onFocus={() => useStore.getState().checkpoint()}
               onChange={(e) => useStore.getState().mutate((song) => void (song.samples[i].name = e.target.value))}
             />
+            <button className="rack-btn" title="Save to your preset library (use it in any song)" onClick={() => saveSamplePreset(sample)}>☆</button>
             <button className="rack-btn" title="Delete sample" onClick={() => deleteSample(i)}>✕</button>
           </div>
           <Waveform sample={sample} />
@@ -106,6 +110,8 @@ export function Browser() {
           {!layout.entries[i] && <div className="small" style={{ color: 'var(--red)' }}>Doesn't fit in DMC memory</div>}
         </div>
       ))}
+
+      <PresetLibrary />
     </div>
   );
 }

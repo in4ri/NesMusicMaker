@@ -181,6 +181,26 @@ ipcMain.handle('save-binary', async (_e, defaultName, filterName, extensions, by
   return result.filePath;
 });
 
+// The preset library lives in the app's settings folder, shared by every project.
+const libraryPath = () => path.join(app.getPath('userData'), 'preset-library.json');
+
+ipcMain.handle('library-load', async () => {
+  try {
+    return await fs.readFile(libraryPath(), 'utf8');
+  } catch {
+    return null;
+  }
+});
+
+ipcMain.handle('library-save', async (_e, text) => {
+  // Write to a temp file then rename, so a crash mid-save can't corrupt the library.
+  const target = libraryPath();
+  await fs.mkdir(path.dirname(target), { recursive: true });
+  await fs.writeFile(target + '.tmp', text, 'utf8');
+  await fs.rename(target + '.tmp', target);
+  return true;
+});
+
 ipcMain.on('set-title', (_e, title) => {
   if (mainWindow) mainWindow.setTitle(title);
 });

@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { previewNote } from '../audio/sync';
 import { noteName } from '../core/tables';
 import { env, INSTRUMENT_COLORS } from '../model/defaults';
+import { saveInstrumentPreset } from '../library';
 import { ColorPicker } from './Popover';
 import { useStore } from '../model/store';
 import { CHANNELS, type Envelope, type EnvelopeKind, type Instrument } from '../model/types';
@@ -260,6 +261,9 @@ export function InstrumentEditor() {
             </button>
           ))}
         </div>
+        <button title="Save to your preset library, to use in any song" onClick={() => saveInstrumentPreset(inst)}>
+          ☆ Save preset
+        </button>
         <button
           title="Make this the sound of the whole channel"
           onClick={() => s.update((song) => void (song.channels[ch].instrument = inst.id))}

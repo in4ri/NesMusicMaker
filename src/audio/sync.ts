@@ -5,7 +5,7 @@ import { compilePreview, compileSong, framesPerTick, type CompiledSong } from '.
 import { REGIONS } from '../core/tables';
 import { makeNote } from '../model/defaults';
 import { muteMask, useStore, usePlayhead } from '../model/store';
-import { CHANNELS, type NoteFx } from '../model/types';
+import { CHANNELS, type DmcSample, type Instrument, type NoteFx } from '../model/types';
 import { engine } from './engine';
 
 let compiled: CompiledSong | null = null;
@@ -104,4 +104,21 @@ export function previewNoteHeld(channel: number, pitch: number, instrument: stri
     const held = Math.max(1, Math.round(((performance.now() - started) / 1000) * frameRate));
     engine.previewUpdate(id, compilePreview(useStore.getState().song, channel, note, held));
   };
+}
+
+/** Audition an instrument that isn't in the song (e.g. a library preset). */
+export function previewPresetInstrument(channel: number, pitch: number, preset: Omit<Instrument, 'id'>) {
+  const s = useStore.getState();
+  const temp: Instrument = { ...preset, id: '__preview__' };
+  const song = { ...s.song, instruments: [...s.song.instruments, temp] };
+  const hold = Math.round(REGIONS[song.region].frameRate * 0.35);
+  engine.preview(compilePreview(song, channel, makeNote(0, 1, pitch, temp.id), hold));
+}
+
+/** Audition a DMC sample that isn't in the song. */
+export function previewPresetSample(sample: Omit<DmcSample, 'id'>) {
+  const s = useStore.getState();
+  const song = { ...s.song, samples: [{ ...sample, id: '__preview__' }] };
+  const hold = Math.round(REGIONS[song.region].frameRate * 2);
+  engine.preview(compilePreview(song, 4, makeNote(0, 1, 0, ''), hold));
 }

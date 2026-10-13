@@ -2,9 +2,11 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { startAudioSync } from './audio/sync';
+import { loadLibrary } from './library';
 import './styles.css';
 
 startAudioSync();
+void loadLibrary();
 
 if (import.meta.env.DEV) {
   // Hooks for automated UI testing in a browser (no MIDI hardware or file picker needed).

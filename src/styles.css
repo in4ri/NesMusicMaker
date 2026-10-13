@@ -247,3 +247,10 @@ label { color: var(--text-dim); }
 .sound-chip .swatch { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
 .sound-chip.on { border-color: var(--accent); background: var(--bg-4); color: var(--text); }
 .sound-chip.wide { grid-column: span 2; }
+
+/* Preset library */
+.browser h3 .h3-buttons { display: flex; gap: 3px; }
+.lib-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; padding: 0 10px 6px; }
+.lib-tabs button { font-size: 11px; padding: 2px 4px; }
+.lib-group .name { color: var(--text-dim); font-size: 11px; }
+.name-edit { flex: 1; min-width: 0; padding: 1px 4px; font-size: 12px; }

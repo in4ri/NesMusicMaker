@@ -5,6 +5,8 @@ export interface NesApi {
   saveProject(path: string | null, text: string): Promise<string | null>;
   saveBinary(defaultName: string, filterName: string, extensions: string[], bytes: Uint8Array): Promise<string | null>;
   setTitle(title: string): void;
+  loadLibrary(): Promise<string | null>;
+  saveLibrary(text: string): Promise<boolean>;
   onMenu(cb: (command: string | { open: { path: string; text: string } }) => void): () => void;
 }
 
@@ -54,4 +56,26 @@ export async function saveBinaryFile(name: string, filterName: string, ext: stri
   if (window.nesApi) return window.nesApi.saveBinary(name, filterName, [ext], bytes);
   download(name, bytes as BlobPart, 'application/octet-stream');
   return '';
+}
+
+const LIBRARY_KEY = 'nes-music-maker.preset-library';
+
+/** Read the preset library (Electron: the app's settings folder; browser: local storage). */
+export async function loadLibraryText(): Promise<string | null> {
+  if (window.nesApi) return window.nesApi.loadLibrary();
+  try {
+    return localStorage.getItem(LIBRARY_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export async function saveLibraryText(text: string): Promise<boolean> {
+  if (window.nesApi) return window.nesApi.saveLibrary(text);
+  try {
+    localStorage.setItem(LIBRARY_KEY, text);
+    return true;
+  } catch {
+    return false;
+  }
 }

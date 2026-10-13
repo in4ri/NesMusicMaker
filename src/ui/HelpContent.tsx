@@ -74,10 +74,13 @@ export function PlaylistHelp() {
       </p>
       <ul>
         <li><b>Vol</b>: fade a channel in or out (0–15).</li>
-        <li><b>Duty</b>: sweep a pulse channel's tone from thin to hollow.</li>
+        <li><b>Duty</b>: sweep a pulse channel's tone from thin (12.5%) to hollow (50%). On the NES, 25% and 75% sound the same.</li>
         <li><b>Det</b>: tune a channel slightly sharp or flat (try Pulse 2 at +8 against Pulse 1 for a chorus effect).</li>
       </ul>
-      <p>Choose which lanes show on the right. Automation is heard in SONG mode and in exports.</p>
+      <p>
+        Choose which lanes show on the right. Automation is heard in <b>SONG</b> mode and in exports, <b>not in PAT mode</b> (which loops a
+        single pattern). Editing a lane switches to SONG mode for you.
+      </p>
       <h5>Changing key</h5>
       <p>
         <b>Transpose song…</b> (on the right, or Edit → Transpose Song) moves every note in every pattern up or down on the channels you
@@ -108,8 +111,14 @@ export function InstrumentHelp() {
         <li><b>Pitch</b>: small bends, such as vibrato or a drop at the start.</li>
         <li><b>Duty</b>: the tone of Pulse channels, from thin and buzzy to hollow.</li>
         <li><b>Loop / release strips</b> (under each graph): click to set where the sound repeats while a note is held, and where it jumps when the note ends. That's how fade-outs work.</li>
-        <li><b>Presets</b>: ready-made shapes to start from.</li>
+        <li><b>Presets</b> (on each graph): ready-made shapes to start from.</li>
       </ul>
+      <h5>Your preset library</h5>
+      <p>
+        Click <b>☆ Save preset</b> (or ☆ next to an instrument in the sidebar) to keep an instrument, for example a great sound from an imported NSF.
+        Saved presets appear under <b>Preset library</b> in the sidebar of every song: click to hear one, <b>+</b> to add it. Samples can be saved
+        the same way. Use Export/Import to back up or share your library.
+      </p>
       <p>Try it: click C4, choose Presets → Pluck on the Volume graph, then click C4 again.</p>
     </>
   );

@@ -3,6 +3,7 @@ import { playheadTick } from '../audio/sync';
 import { AUTOMATION_PARAMS, automationActiveAt, automationValueAt, findLane, sortedLanePoints, type ParamInfo } from '../core/automation';
 import { songEndTick } from '../core/compiler';
 import { clipConflicts } from '../core/hardware';
+import { toast } from '../actions';
 import { openTranspose } from './TransposeDialog';
 import { laneKey, usePlayhead, useStore, type AppState } from '../model/store';
 import { CHANNELS, PLAYLIST_TRACKS, TICKS_PER_STEP, newId, patternLength, ticksPerBar, type AutomationPoint, type Clip } from '../model/types';
@@ -39,6 +40,18 @@ function visibleLanes(st: AppState): LaneRef[] {
 
 const LANE_BG: Record<string, string> = { volume: '#1e1e1e', duty: '#1e1e1e', detune: '#1e1e1e' };
 const LANE_GUIDES: Record<string, number[]> = { volume: [0, 5, 10, 15], duty: [0, 1, 2, 3], detune: [-50, -25, 0, 25, 50] };
+
+/** Automation only plays across the song, so editing it switches PAT mode to SONG mode (once explained). */
+let explainedSongMode = false;
+function ensureSongMode() {
+  const st = useStore.getState();
+  if (st.playMode === 'song') return;
+  st.set({ playMode: 'song' });
+  if (!explainedSongMode) {
+    toast('Switched to SONG mode: automation plays across the whole song, not in PAT (single pattern) mode.');
+    explainedSongMode = true;
+  }
+}
 
 /** Apply a change to a lane's points, creating the lane if needed. */
 function editLane(lane: LaneRef, fn: (points: AutomationPoint[]) => void) {
@@ -364,6 +377,12 @@ export function Playlist() {
       g.font = `10px ${font}`;
       g.fillStyle = '#939393';
       g.fillText(info.param === 'volume' && CHANNELS[lane.channel].kind === 'triangle' ? 'Volume (on/off)' : info.label, 10, top + 30);
+      if (st.playMode === 'pattern' && findLane(song, lane.channel, info.param)?.points.length) {
+        g.fillStyle = '#fb9839';
+        g.font = `10px ${font}`;
+        g.fillText('Not heard in', 10, top + 46);
+        g.fillText('PAT mode', 10, top + 58);
+      }
       if (st.playing && st.playMode === 'song') {
         const pts = sortedLanePoints(song, lane.channel, info.param);
         const tick = playheadTick(usePlayhead.getState().frame);
@@ -452,6 +471,7 @@ export function Playlist() {
       const lane = lanes[laneIndex];
       const point = pointAt(lane, laneIndex, x, y);
       st.checkpoint();
+      if (e.button !== 2) ensureSongMode();
       if (e.button === 2) {
         drag.current = { kind: 'erase-points', lane: lane.key };
         if (point) editLane(lane, (pts) => void pts.splice(pts.findIndex((p) => p.id === point.id), 1));
@@ -686,7 +706,8 @@ export function Playlist() {
         )}
         <div className="small" style={{ marginBottom: 8 }}>
           <b>Vol</b> scales volume (0–15; triangle is on/off only). <b>Duty</b> sweeps the pulse width (12.5–75%) between its first and last point. <b>Det</b>{' '}
-          detunes in cents — try Pulse 2 at +8c against Pulse 1. Automation plays in SONG mode and in WAV/NSF exports.
+          detunes in cents — try Pulse 2 at +8c against Pulse 1. Automation plays in <b>SONG</b> mode (not PAT) and in WAV/NSF exports.
+          Tip: on the NES, 25% and 75% duty sound the same (one is the other upside down), so sweep through 12.5% and 50% for an audible change.
         </div>
         <h4>Mouse</h4>
         <ul className="help-list">

@@ -7,6 +7,8 @@ contextBridge.exposeInMainWorld('nesApi', {
   saveBinary: (defaultName, filterName, extensions, bytes) =>
     ipcRenderer.invoke('save-binary', defaultName, filterName, extensions, bytes),
   setTitle: (title) => ipcRenderer.send('set-title', title),
+  loadLibrary: () => ipcRenderer.invoke('library-load'),
+  saveLibrary: (text) => ipcRenderer.invoke('library-save', text),
   onMenu: (callback) => {
     const listener = (_event, command) => callback(command);
     ipcRenderer.on('menu', listener);

@@ -36,6 +36,7 @@ Each channel plays one note at a time. The chip has no hardware effects: vibrato
   - General MIDI drums map to noise kick, snare and hat sounds.
   - Imports are quantised and sliced into reusable patterns.
 - **Instruments**: frame-by-frame volume, arpeggio, pitch and duty envelopes with loop and release points (FamiTracker-style), plus presets.
+- **Preset library**: save any instrument (☆), including sounds from imported NSFs, or any DMC sample to a personal library shared by all your songs. Click to audition, **+** to add to a song, rename, remove, and Export/Import to back up or share. The library is stored in the app's settings folder (`preset-library.json`).
 - **DMC samples**: import WAV/MP3/OGG and convert to 1-bit delta PCM, with rate and loop settings and a memory usage meter.
 - **Accurate playback**: a cycle-stepped APU emulation with the real non-linear mixer and NES output filters, running on the audio thread.
 - **Export**:
