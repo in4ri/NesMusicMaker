@@ -84,6 +84,12 @@ class AudioEngine {
     if (this.node) this.post({ type: 'gain', gain });
   }
 
+  /** Seconds between rendering a sample and hearing it. */
+  latency() {
+    const ctx = this.ctx;
+    return ctx ? ctx.baseLatency + (ctx.outputLatency || 0) : 0;
+  }
+
   onPosition(l: PosListener) {
     this.listeners.add(l);
     return () => this.listeners.delete(l);

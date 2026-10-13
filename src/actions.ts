@@ -56,6 +56,7 @@ export function normalizeSong(raw: unknown): Song {
   }));
   song.playlist = s.playlist ?? [];
   song.channels = CHANNELS.map((_, ch) => s.channels?.[ch] ?? base.channels[ch]);
+  song.automation = (s.automation ?? []).filter((l) => l && Array.isArray(l.points));
   return song;
 }
 

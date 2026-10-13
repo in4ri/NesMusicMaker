@@ -19,8 +19,20 @@ Each channel plays one note at a time. The chip has no hardware effects: vibrato
 
 - **Channel rack**: FL-style step sequencer for all 5 channels, with mute/solo, a level LED, and a default instrument and pitch per channel.
 - **Piano roll**: draw, move, resize and delete notes; box-select, copy/paste, duplicate and transpose; a per-note volume lane; ghost notes from the other melodic channels.
-- **Per-note effects**: glide (legato portamento), pitch bend, vibrato, arpeggio chords, delay, cut, and duty/noise-mode override.
+- **Per-note effects**: glide (legato portamento), pitch bend, vibrato, delay, cut, and duty/noise-mode override.
+- **Arpeggio chords**: give any note a chord shape (major, minor, 7ths, sus, power, octave… or custom offsets), a style (up, down, up-down, down-up, random, as entered) and a speed in frames per step. Change them later on any selection.
 - **Playlist**: arrange patterns on 8 tracks, set the play start and the loop point.
+- **Volume automation**: a volume lane per channel under the playlist (NES levels 0–15), with linear segments between points. You can show or hide lanes per channel. It applies in song playback and in WAV/NSF exports.
+- **MIDI keyboard input** (Web MIDI, any connected device):
+  - Plays the selected channel, with velocity → volume.
+  - Held chords become arpeggio notes.
+  - Arm **●** to record live while playing (quantised to the snap), or to step-enter notes and chords while stopped.
+  - The computer keyboard piano works the same way.
+- **MIDI file import**:
+  - Map each MIDI part to an NES channel. Parts are suggested automatically: drums → noise, bass → triangle, top parts → pulses.
+  - Chords can be reduced to the highest or lowest note, or kept as arpeggios.
+  - General MIDI drums map to noise kick, snare and hat sounds.
+  - Imports are quantised and sliced into reusable patterns.
 - **Instruments**: frame-by-frame volume, arpeggio, pitch and duty envelopes with loop and release points (FamiTracker-style), plus presets.
 - **DMC samples**: import WAV/MP3/OGG and convert to 1-bit delta PCM, with rate and loop settings and a memory usage meter.
 - **Accurate playback**: a cycle-stepped APU emulation with the real non-linear mixer and NES output filters, running on the audio thread.
@@ -28,6 +40,10 @@ Each channel plays one note at a time. The chip has no hardware effects: vibrato
   - **WAV**: renders the song.
   - **NSF**: a real NES music file that plays in NSF players and emulators (NSFPlay, Game Music Emu, Mesen, etc.), or on hardware via a flash cart. It loops from the song's loop point.
 - Undo/redo, a computer-keyboard piano (Z–M and Q–U rows; `-`/`=` change octave), NTSC/PAL, and `.nesmm` project files (JSON).
+
+### Why there's no panning
+
+The NES outputs **mono**: all five channels are mixed into one signal, so there's nothing to pan, and an NSF file can't carry stereo. Some emulators fake stereo, but it wouldn't play back that way on real hardware. The automation that maps onto real hardware is volume (done). Pulse duty-cycle sweeps, fine detune and tempo changes would also be possible.
 
 ## Getting started
 
@@ -79,6 +95,9 @@ Every output path consumes the same compiled register stream, so the editor, the
 | `src/core/compiler.ts` | Song → per-frame register writes (envelopes, effects, DMC triggers) |
 | `src/core/nsf.ts`, `asm6502.ts` | NSF builder and the 6502 player, written in a tiny assembler DSL |
 | `src/core/dmc.ts` | Audio → 1-bit delta PCM conversion, $C000 memory layout |
+| `src/core/midi.ts`, `midiImport.ts` | MIDI file parser; mapping parts to NES channels, chord reduction/arpeggios |
+| `src/core/automation.ts` | Song-timeline volume automation curves |
+| `src/audio/liveInput.ts`, `midiInput.ts` | MIDI/computer keyboard input, chords → arpeggios, live recording, step entry |
 | `src/audio/` | AudioWorklet, engine, and editor ↔ audio sync |
 | `src/model/` | Song types, defaults (instruments, demo tune), store with undo |
 | `src/ui/` | Toolbar, browser, channel rack, piano roll, playlist, instrument editor |
@@ -87,6 +106,7 @@ Every output path consumes the same compiled register stream, so the editor, the
 ## Limitations and ideas for later
 
 - The NSF uses a register-dump player. It's exact and simple, but file size grows with song length (up to about 1 MB), and it isn't meant to be dropped into a homebrew game engine.
-- No MIDI import or MIDI keyboard input yet.
+- MIDI import uses the file's first tempo, and notes that cross a pattern boundary are cut at the boundary.
+- Volume automation follows the song timeline, so you don't hear it in PAT (single pattern) mode.
 - No Famicom expansion chips (VRC6, FDS, N163, etc.).
 - The pulse channels' hardware sweep unit isn't used. Pitch slides are done in software, as most drivers do.

@@ -1,5 +1,5 @@
 // Electron main process: window, menu, file dialogs.
-const { app, BrowserWindow, Menu, dialog, ipcMain, protocol, net, shell } = require('electron');
+const { app, BrowserWindow, Menu, dialog, ipcMain, protocol, net, session, shell } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs/promises');
 const { pathToFileURL } = require('node:url');
@@ -41,6 +41,8 @@ function buildMenu() {
         { type: 'separator' },
         { label: 'Save', accelerator: 'CmdOrCtrl+S', click: () => send('save') },
         { label: 'Save As…', accelerator: 'CmdOrCtrl+Shift+S', click: () => send('save-as') },
+        { type: 'separator' },
+        { label: 'Import MIDI File…', accelerator: 'CmdOrCtrl+I', click: () => send('import-midi') },
         { type: 'separator' },
         { label: 'Export WAV…', accelerator: 'CmdOrCtrl+E', click: () => send('export-wav') },
         { label: 'Export NSF…', accelerator: 'CmdOrCtrl+Shift+E', click: () => send('export-nsf') },
@@ -199,6 +201,9 @@ app.whenReady().then(() => {
     headers.set('Content-Security-Policy', CSP);
     return new Response(res.body, { status: res.status, headers });
   });
+  // The app only needs MIDI devices (Web MIDI); refuse every other permission.
+  // Electron reports Web MIDI requests as 'midiSysex' even when sysex isn't asked for.
+  session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => callback(permission === 'midi' || permission === 'midiSysex'));
   buildMenu();
   createWindow();
   app.on('activate', () => {

@@ -28,6 +28,10 @@ export interface AppState {
   mutes: boolean[];
   solo: number; // -1 = none
   masterGain: number;
+  /** Show the automation lanes under the playlist tracks. */
+  showAutomation: boolean;
+  /** Which lanes are visible, keyed by laneKey(channel, param). */
+  automationVisible: Record<string, boolean>;
 
   /** Save an undo point (call once at the start of a drag, then use `mutate`). */
   checkpoint: () => void;
@@ -62,6 +66,8 @@ export const useStore = create<AppState>((set, get) => {
     mutes: CHANNELS.map(() => false),
     solo: -1,
     masterGain: 0.8,
+    showAutomation: true,
+    automationVisible: { '0:volume': true, '1:volume': true, '2:volume': true, '3:volume': true },
 
     checkpoint: () => {
       const { song, past } = get();
@@ -110,6 +116,10 @@ export function fixSelection() {
   if (!s.song.patterns.some((p) => p.id === s.selectedPatternId)) patch.selectedPatternId = s.song.patterns[0]?.id ?? '';
   if (!s.song.instruments.some((i) => i.id === s.selectedInstrumentId)) patch.selectedInstrumentId = s.song.instruments[0]?.id ?? '';
   if (Object.keys(patch).length) useStore.setState(patch);
+}
+
+export function laneKey(channel: number, param: string) {
+  return `${channel}:${param}`;
 }
 
 export function muteMask(mutes: boolean[], solo: number) {

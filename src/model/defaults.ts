@@ -92,6 +92,7 @@ export function emptySong(): Song {
       { stepPitch: 12, instrument: byName('Noise Snare') },
       { stepPitch: 0, instrument: '' },
     ],
+    automation: [],
   };
 }
 

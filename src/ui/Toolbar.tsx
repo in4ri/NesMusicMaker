@@ -5,6 +5,7 @@ import { REGIONS } from '../core/tables';
 import { currentPattern, usePlayhead, useStore } from '../model/store';
 import { CHANNELS, PPQ, ticksPerBar } from '../model/types';
 import { PATTERN_COLORS } from '../model/defaults';
+import { MidiMenu, RecordButton } from './MidiControls';
 
 function Position() {
   const frame = usePlayhead((s) => s.frame);
@@ -60,6 +61,7 @@ export function Toolbar({ onHelp }: { onHelp: () => void }) {
           {s.playing ? '❚❚' : '▶'}
         </button>
         <button title="Stop" onClick={stop}>■</button>
+        <RecordButton />
       </div>
       <div className="group">
         <button className={s.playMode === 'pattern' ? 'active' : ''} onClick={() => s.set({ playMode: 'pattern' })} title="Play the selected pattern on loop">
@@ -152,6 +154,8 @@ export function Toolbar({ onHelp }: { onHelp: () => void }) {
           onChange={(e) => s.mutate((song) => void (song.author = e.target.value))}
         />
       </div>
+      <div className="sep" />
+      <MidiMenu />
       <div style={{ flex: 1 }} />
       <div className="group" title="Master volume">
         <label>Vol</label>

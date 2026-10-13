@@ -57,12 +57,73 @@ export interface DmcSample {
   initialLevel: number;
 }
 
+export type ArpStyle = 'entered' | 'up' | 'down' | 'updown' | 'downup' | 'random';
+
+export const ARP_STYLES: { value: ArpStyle; label: string }[] = [
+  { value: 'entered', label: 'As entered' },
+  { value: 'up', label: 'Up' },
+  { value: 'down', label: 'Down' },
+  { value: 'updown', label: 'Up-down' },
+  { value: 'downup', label: 'Down-up' },
+  { value: 'random', label: 'Random' },
+];
+
+export const CHORD_SHAPES: { name: string; arp: number[] }[] = [
+  { name: 'Major', arp: [0, 4, 7] },
+  { name: 'Minor', arp: [0, 3, 7] },
+  { name: 'Major 7', arp: [0, 4, 7, 11] },
+  { name: 'Minor 7', arp: [0, 3, 7, 10] },
+  { name: 'Dominant 7', arp: [0, 4, 7, 10] },
+  { name: 'Sus2', arp: [0, 2, 7] },
+  { name: 'Sus4', arp: [0, 5, 7] },
+  { name: 'Diminished', arp: [0, 3, 6] },
+  { name: 'Augmented', arp: [0, 4, 8] },
+  { name: 'Power (5th)', arp: [0, 7] },
+  { name: 'Octave', arp: [0, 12] },
+  { name: 'Major + octave', arp: [0, 4, 7, 12] },
+  { name: 'Minor + octave', arp: [0, 3, 7, 12] },
+];
+
+/** The order chord offsets are played in for a given arpeggio style. */
+export function arpSequence(arp: number[], style: ArpStyle = 'entered'): number[] {
+  const up = [...arp].sort((a, b) => a - b);
+  switch (style) {
+    case 'up':
+    case 'random':
+      return up;
+    case 'down':
+      return up.reverse();
+    case 'updown':
+      return up.length < 3 ? up : [...up, ...up.slice(1, -1).reverse()];
+    case 'downup': {
+      const down = [...up].reverse();
+      return down.length < 3 ? down : [...down, ...down.slice(1, -1).reverse()];
+    }
+    default:
+      return arp;
+  }
+}
+
+/** Chord offset at a given frame of a note. Random is deterministic so playback and exports match. */
+export function arpOffsetAt(seq: number[], style: ArpStyle | undefined, speed: number | undefined, age: number): number {
+  if (!seq.length) return 0;
+  const step = Math.floor(age / Math.max(1, speed ?? 1));
+  if (style === 'random') {
+    let h = Math.imul(step + 1, 0x9e3779b1);
+    h = Math.imul(h ^ (h >>> 15), 0x85ebca6b);
+    return seq[((h ^ (h >>> 13)) >>> 0) % seq.length];
+  }
+  return seq[step % seq.length];
+}
+
 export interface NoteFx {
   glide?: number;        // frames to glide from the previous note's pitch (legato)
   bend?: number;         // semitones to bend over the length of the note
   vibratoDepth?: number; // 0..15, 1/8 semitone units
   vibratoSpeed?: number; // 0..15
-  arp?: number[];        // chord offsets cycled each frame, e.g. [0, 4, 7]
+  arp?: number[];        // chord offsets from the note's pitch, e.g. [0, 4, 7]
+  arpStyle?: ArpStyle;   // order the chord is played in (default: as entered)
+  arpSpeed?: number;     // frames per arpeggio step (default 1 = classic NES speed)
   delay?: number;        // frames to delay the note start
   cut?: number;          // frames after which the note is cut (0 = off)
   duty?: number;         // override instrument duty (0..3)
@@ -95,6 +156,22 @@ export interface Clip {
   start: number; // tick
 }
 
+export interface AutomationPoint {
+  id: string;
+  tick: number;
+  value: number; // volume 0..15, duty 0..3, detune in cents
+}
+
+export type AutomationParam = 'volume' | 'duty' | 'detune';
+
+/** A song-timeline automation curve for one channel. Linear between points, flat before/after. */
+export interface AutomationLane {
+  channel: number;
+  param: AutomationParam;
+  points: AutomationPoint[];
+}
+
+
 export interface ChannelSettings {
   /** Default pitch for notes created from the step sequencer. */
   stepPitch: number;
@@ -118,6 +195,8 @@ export interface Song {
   /** Tick the song loops back to when it reaches the end. */
   loopStart: number;
   channels: ChannelSettings[];
+  /** Song-mode automation lanes (applied in song playback and exports, not pattern mode). */
+  automation: AutomationLane[];
 }
 
 export const PLAYLIST_TRACKS = 8;

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useInput } from '../audio/liveInput';
 import { playheadTick, previewNote } from '../audio/sync';
 import { noteName } from '../core/tables';
 import { makeNote } from '../model/defaults';
@@ -53,6 +54,7 @@ export function PianoRoll() {
   const s = useStore();
   const pattern = currentPattern(s);
   const ch = s.selectedChannel;
+  useInput((i) => (i.record ? i.stepCursor : -1)); // redraw when the step cursor moves
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ w: 800, h: 400 });
@@ -180,6 +182,19 @@ export function PianoRoll() {
       });
     }
 
+    // Chord tones of arpeggio notes, drawn faintly so you can see the harmony.
+    if (kind === 'pulse' || kind === 'triangle') {
+      for (const n of pattern.notes[ch]) {
+        if (!n.fx.arp?.length) continue;
+        g.fillStyle = (instColor.get(n.instrument) ?? '#aaaaaa') + '40';
+        for (const off of n.fx.arp) {
+          const ri = off === 0 ? undefined : rowIndex.get(n.pitch + off);
+          if (ri === undefined) continue;
+          g.fillRect(geo.x(n.tick) + 0.5, geo.y(ri) + 2, Math.max(3, n.length * v.pxPerTick) - 1, rowH - 4);
+        }
+      }
+    }
+
     // Notes
     g.font = `${Math.min(11, rowH - 3)}px ${getComputedStyle(document.body).fontFamily}`;
     g.textBaseline = 'middle';
@@ -302,6 +317,21 @@ export function PianoRoll() {
     g.fillStyle = '#22252d';
     g.fillRect(0, 0, KEYS_W, RULER_H);
 
+    // Step-entry cursor (record armed while stopped)
+    const input = useInput.getState();
+    if (input.record && !st.playing) {
+      const x = geo.x(input.stepCursor);
+      if (x >= KEYS_W) {
+        g.fillStyle = '#5c7cfa';
+        g.fillRect(x, RULER_H, 2, geo.gridBottom - RULER_H);
+        g.beginPath();
+        g.moveTo(x - 6, 0);
+        g.lineTo(x + 7, 0);
+        g.lineTo(x + 1, RULER_H - 6);
+        g.fill();
+      }
+    }
+
     // Playhead
     if (st.playing && st.playMode === 'pattern') {
       const tick = playheadTick(usePlayhead.getState().frame);
@@ -380,7 +410,14 @@ export function PianoRoll() {
       drag.current = { kind: 'pan', startX: x, startY: y, sx: view.current.scrollX, sy: view.current.scrollY };
       return;
     }
-    if (y < RULER_H) return;
+    if (y < RULER_H) {
+      // Clicking the ruler moves the step-entry cursor.
+      if (x > KEYS_W) {
+        const tick = Math.max(0, snapTick(geo.tickAt(x)));
+        if (tick < patternLength(st.song, pattern)) useInput.setState({ stepCursor: tick });
+      }
+      return;
+    }
     if (y >= geo.gridBottom) {
       if (x < KEYS_W) return;
       st.checkpoint();

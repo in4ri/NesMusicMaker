@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { currentPattern, useStore } from '../model/store';
-import { CHANNELS, PPQ, type Note, type NoteFx } from '../model/types';
+import { ARP_STYLES, CHANNELS, CHORD_SHAPES, PPQ, type ArpStyle, type Note, type NoteFx } from '../model/types';
 
 const SNAPS: { label: string; ticks: number }[] = [
   { label: 'Bar', ticks: PPQ * 4 },
@@ -70,6 +70,7 @@ export function NotePanel() {
     }, record);
 
   const arpText = common(notes, (n) => (n.fx.arp ?? []).join(' '));
+  const shapeName = arpText ? CHORD_SHAPES.find((c) => c.arp.join(' ') === arpText)?.name : undefined;
 
   return (
     <div className="side-panel">
@@ -177,14 +178,58 @@ export function NotePanel() {
               </div>
             </>
           )}
-          {kind !== 'dmc' && (
-            <div className="field" title="Arpeggio chord: semitone offsets cycled every frame, e.g. 0 4 7 (major) or 0 3 7 (minor)">
-              <label>Arp chord</label>
-              <ArpInput value={arpText} onChange={(arp) => setFx('arp', arp.length ? arp : undefined, true)} />
-            </div>
-          )}
           <NumField label="Delay" min={0} max={30} value={common(notes, (n) => n.fx.delay ?? 0)} onChange={(v) => setFx('delay', v)} title="Frames to delay the note start (swing / flams)" />
           <NumField label="Cut" min={0} max={255} value={common(notes, (n) => n.fx.cut ?? 0)} onChange={(v) => setFx('cut', v)} title="Cut the note after N frames (0 = off)" />
+          {kind !== 'dmc' && (
+            <>
+              <h4>Arpeggio</h4>
+              <div className="field" title="Chord shape played as a fast arpeggio from the note's pitch">
+                <label>Chord</label>
+                <select
+                  value={shapeName ?? (arpText === undefined ? 'mixed' : arpText ? 'custom' : 'none')}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === 'none') setFx('arp', undefined, true);
+                    else {
+                      const shape = CHORD_SHAPES.find((c) => c.name === v);
+                      if (shape) setFx('arp', [...shape.arp], true);
+                    }
+                  }}
+                >
+                  {arpText === undefined && <option value="mixed">(mixed)</option>}
+                  <option value="none">None</option>
+                  {CHORD_SHAPES.map((c) => (
+                    <option key={c.name} value={c.name}>{c.name}</option>
+                  ))}
+                  {shapeName === undefined && arpText && <option value="custom">Custom</option>}
+                </select>
+              </div>
+              <div className="field" title="Semitone offsets from the note, e.g. 0 4 7 (major) or 0 3 7 (minor)">
+                <label>Offsets</label>
+                <ArpInput value={arpText} onChange={(arp) => setFx('arp', arp.length ? arp : undefined, true)} />
+              </div>
+              <div className="field" title="Order the chord notes are played in">
+                <label>Style</label>
+                <select
+                  value={common(notes, (n) => n.fx.arpStyle ?? 'entered') ?? ''}
+                  onChange={(e) => edit((n) => void (n.fx.arpStyle = e.target.value as ArpStyle), true)}
+                >
+                  {common(notes, (n) => n.fx.arpStyle ?? 'entered') === undefined && <option value="">(mixed)</option>}
+                  {ARP_STYLES.map((a) => (
+                    <option key={a.value} value={a.value}>{a.label}</option>
+                  ))}
+                </select>
+              </div>
+              <NumField
+                label="Speed"
+                min={1}
+                max={16}
+                value={common(notes, (n) => n.fx.arpSpeed ?? 1)}
+                onChange={(v) => setFx('arpSpeed', v === 1 ? undefined : v)}
+                title="Frames per arpeggio step (1 = classic fast NES arpeggio)"
+              />
+            </>
+          )}
         </>
       )}
 

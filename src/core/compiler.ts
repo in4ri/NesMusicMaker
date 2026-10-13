@@ -7,6 +7,8 @@
 import {
   CHANNELS,
   PPQ,
+  arpOffsetAt,
+  arpSequence,
   patternLength,
   ticksPerBar,
   type Envelope,
@@ -14,6 +16,7 @@ import {
   type Note,
   type Song,
 } from '../model/types';
+import { channelAutomation, modsAt, NO_MODS, type ChannelAutomation, type ChannelMods } from './automation';
 import { layoutDmc, type DmcLayout } from './dmc';
 import { REGIONS, pulsePeriod, trianglePeriod, type Region } from './tables';
 
@@ -89,9 +92,11 @@ class Voice {
   glideFrom = 0;
   glideFrames = 0;
   lastPitch: number;
+  readonly arpSeq: number[];
 
   constructor(public ev: NoteEvent, public inst: Instrument) {
     this.lastPitch = ev.note.pitch;
+    this.arpSeq = ev.note.fx.arp?.length ? arpSequence(ev.note.fx.arp, ev.note.fx.arpStyle) : [];
   }
 
   release() {
@@ -125,16 +130,19 @@ interface FrameOutput {
   duty: number;
 }
 
-function voiceOutput(v: Voice): FrameOutput {
+/** `mods` are the channel's automation values for this frame. */
+function voiceOutput(v: Voice, mods: ChannelMods): FrameOutput {
+  const scale = mods.volume;
   const { inst, ev } = v;
   const note = ev.note;
   const fx = note.fx;
   const envVol = envValue(inst.volume, v.envPos[0], DEFAULT_ENV.volume);
-  const vol = envVol <= 0 || note.volume <= 0 ? 0 : Math.max(1, Math.round((envVol * note.volume) / 15));
+  const vol = envVol <= 0 || note.volume <= 0 || scale <= 0 ? 0 : Math.max(1, Math.round((envVol * note.volume * scale) / 225));
 
   let pitch = note.pitch + envValue(inst.arpeggio, v.envPos[1], 0);
-  if (fx.arp && fx.arp.length) pitch += fx.arp[v.noteAge % fx.arp.length];
+  if (v.arpSeq.length) pitch += arpOffsetAt(v.arpSeq, fx.arpStyle, fx.arpSpeed, v.noteAge);
   pitch += envValue(inst.pitch, v.envPos[2], 0) / 16;
+  pitch += mods.detune / 100;
   if (fx.vibratoDepth && fx.vibratoSpeed) {
     pitch += (Math.sin((2 * Math.PI * v.noteAge * fx.vibratoSpeed) / 64) * fx.vibratoDepth) / 8;
   }
@@ -148,7 +156,9 @@ function voiceOutput(v: Voice): FrameOutput {
   }
   v.lastPitch = note.pitch + bendOffset;
 
-  const duty = fx.duty !== undefined && fx.duty >= 0 ? fx.duty : envValue(inst.duty, v.envPos[3], DEFAULT_ENV.duty);
+  // Most specific wins: the note's own duty, then duty automation, then the instrument envelope.
+  const duty =
+    fx.duty !== undefined && fx.duty >= 0 ? fx.duty : mods.duty >= 0 ? mods.duty : envValue(inst.duty, v.envPos[3], DEFAULT_ENV.duty);
   return { volume: vol, pitch, duty: duty & 3 };
 }
 
@@ -171,6 +181,7 @@ function simulateChannel(
   frameCount: number,
   regs: Uint8Array,
   events: [number, number][][],
+  automation: ChannelAutomation | null,
 ) {
   const kind = CHANNELS[ch].kind;
   let evi = 0;
@@ -230,7 +241,7 @@ function simulateChannel(
     if (voice && !voice.released && f >= voice.ev.end) voice.release();
     if (voice && voice.finished) voice = null;
 
-    const out = voice ? voiceOutput(voice) : null;
+    const out = voice ? voiceOutput(voice, automation ? modsAt(automation, f) : NO_MODS) : null;
     if (voice) {
       voice.step();
       if (voice.finished) voice = null;
@@ -367,15 +378,24 @@ export function compileSong(song: Song, opts: CompileOptions): CompiledSong {
   const { events, endFrame } = collectEvents(song, opts, fpt);
   const frameCount = endFrame;
   const loopFrame = opts.mode === 'pattern' ? 0 : Math.min(frameCount - 1, Math.floor(song.loopStart * fpt + 1e-6));
-  return compileEvents(song, events, frameCount, loopFrame, fpt);
+  // Automation lives on the song timeline, so it only applies in song mode.
+  const automation = opts.mode === 'song' ? CHANNELS.map((_, ch) => channelAutomation(song, ch, frameCount, fpt)) : [];
+  return compileEvents(song, events, frameCount, loopFrame, fpt, automation);
 }
 
-function compileEvents(song: Song, events: NoteEvent[][], frameCount: number, loopFrame: number, fpt: number): CompiledSong {
+function compileEvents(
+  song: Song,
+  events: NoteEvent[][],
+  frameCount: number,
+  loopFrame: number,
+  fpt: number,
+  automation: ChannelAutomation[] = [],
+): CompiledSong {
   const ctx = buildContext(song);
   const regs = new Uint8Array(frameCount * REG_COUNT);
   for (const [reg, v] of INIT_WRITES) regs[reg] = v;
   const frameEvents: [number, number][][] = Array.from({ length: frameCount }, () => []);
-  CHANNELS.forEach((_, ch) => simulateChannel(ctx, ch, events[ch], frameCount, regs, frameEvents));
+  CHANNELS.forEach((_, ch) => simulateChannel(ctx, ch, events[ch], frameCount, regs, frameEvents, automation[ch] ?? null));
   const { writes, frameIndex } = encodeWrites(regs, frameEvents, frameCount, loopFrame);
   return { region: song.region, frameCount, loopFrame, framesPerTick: fpt, writes, frameIndex, dmcMemory: ctx.dmc.memory };
 }

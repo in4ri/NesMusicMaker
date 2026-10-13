@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { exportNsf, exportWav, loadProjectText, newProject, openProject, saveProject, toast, useToasts } from './actions';
-import { previewNoteHeld, togglePlay } from './audio/sync';
+import { inputNoteOff, inputNoteOn, releaseAll } from './audio/liveInput';
+import { togglePlay } from './audio/sync';
 import { currentPattern, useStore } from './model/store';
 import { CHANNELS } from './model/types';
 import { isElectron } from './platform/files';
@@ -9,6 +10,7 @@ import { ChannelRack } from './ui/ChannelRack';
 import { InstrumentEditor } from './ui/InstrumentEditor';
 import { isTyping, PianoRoll } from './ui/PianoRoll';
 import { Playlist } from './ui/Playlist';
+import { MidiImportDialog, startMidiImport } from './ui/MidiImportDialog';
 import { Toolbar } from './ui/Toolbar';
 
 // Computer keyboard piano (layout-independent key codes), FL/tracker style.
@@ -38,12 +40,12 @@ function runCommand(cmd: string) {
     case 'undo': return typing ? void document.execCommand('undo') : s.undo();
     case 'redo': return typing ? void document.execCommand('redo') : s.redo();
     case 'select-all': return typing ? void document.execCommand('selectAll') : selectAllNotes();
+    case 'import-midi': return void startMidiImport();
   }
 }
 
 function useGlobalKeys() {
   useEffect(() => {
-    const held = new Map<string, () => void>();
     let octave = 4;
 
     const down = (e: KeyboardEvent) => {
@@ -59,7 +61,7 @@ function useGlobalKeys() {
         // In Electron the app menu handles these accelerators.
         if (isElectron()) return;
         const k = e.key.toLowerCase();
-        const map: Record<string, string> = { s: e.shiftKey ? 'save-as' : 'save', o: 'open', e: e.shiftKey ? 'export-nsf' : 'export-wav', z: e.shiftKey ? 'redo' : 'undo', y: 'redo', a: 'select-all' };
+        const map: Record<string, string> = { s: e.shiftKey ? 'save-as' : 'save', o: 'open', i: 'import-midi', e: e.shiftKey ? 'export-nsf' : 'export-wav', z: e.shiftKey ? 'redo' : 'undo', y: 'redo', a: 'select-all' };
         if (map[k]) {
           e.preventDefault();
           runCommand(map[k]);
@@ -77,31 +79,25 @@ function useGlobalKeys() {
         semis = PIANO_KEYS_UPPER.indexOf(e.code);
         if (semis >= 0) semis += 12;
       }
-      if (semis < 0 || held.has(e.code)) return;
+      if (semis < 0) return;
       const s = useStore.getState();
-      const ch = s.selectedChannel;
-      const kind = CHANNELS[ch].kind;
+      const kind = CHANNELS[s.selectedChannel].kind;
       let pitch = (octave + 1) * 12 + semis;
       if (kind === 'noise') pitch = Math.min(15, semis);
       if (kind === 'dmc') {
         if (semis >= s.song.samples.length) return;
         pitch = semis;
       }
-      const inst = s.view === 'instrument' ? s.selectedInstrumentId : s.song.channels[ch].instrument;
-      held.set(e.code, previewNoteHeld(ch, pitch, inst));
+      inputNoteOn(`kbd:${e.code}`, pitch, 127);
     };
-    const up = (e: KeyboardEvent) => {
-      const release = held.get(e.code);
-      if (release) {
-        release();
-        held.delete(e.code);
-      }
-    };
+    const up = (e: KeyboardEvent) => inputNoteOff(`kbd:${e.code}`);
     window.addEventListener('keydown', down);
     window.addEventListener('keyup', up);
+    window.addEventListener('blur', releaseAll);
     return () => {
       window.removeEventListener('keydown', down);
       window.removeEventListener('keyup', up);
+      window.removeEventListener('blur', releaseAll);
     };
   }, []);
 }
@@ -142,6 +138,8 @@ function Help({ onClose }: { onClose: () => void }) {
             <tr><th>Ctrl/Cmd+Z, Shift+Z</th><td>Undo / redo</td></tr>
             <tr><th>Ctrl/Cmd+S, O, N</th><td>Save, open, new</td></tr>
             <tr><th>Ctrl/Cmd+E, Shift+E</th><td>Export WAV, export NSF</td></tr>
+            <tr><th>Ctrl/Cmd+I</th><td>Import a MIDI file</td></tr>
+            <tr><th>● (record)</th><td>While playing: record live input. While stopped: step entry at the cursor.</td></tr>
           </tbody>
         </table>
         <p>NSF files play in NES music players and emulators (e.g. NSFPlay, Game Music Emu, Mesen), or on real hardware with a flash cart.</p>
@@ -218,6 +216,7 @@ export function App() {
           </div>
         </div>
       </div>
+      <MidiImportDialog />
       <Toasts />
       {help && <Help onClose={() => setHelp(false)} />}
     </div>
