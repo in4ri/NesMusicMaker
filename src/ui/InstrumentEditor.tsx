@@ -14,10 +14,10 @@ const RANGES: Record<EnvelopeKind, [number, number]> = {
 };
 
 const INFO: Record<EnvelopeKind, { title: string; help: string; color: string }> = {
-  volume: { title: 'Volume', help: '0–15 per frame. Without a release point the note is cut when it ends.', color: '#51cf66' },
-  arpeggio: { title: 'Arpeggio', help: 'Semitone offset per frame. Loop 0 4 7 for a classic chiptune chord. On noise: shifts the noise pitch.', color: '#fab005' },
-  pitch: { title: 'Pitch', help: 'Fine pitch offset in 1/16 semitones per frame: vibrato, drops, scoops.', color: '#74c0fc' },
-  duty: { title: 'Duty / Noise mode', help: 'Pulse: 0 = 12.5%, 1 = 25%, 2 = 50%, 3 = 75%. Noise: even = hiss, odd = metallic. Ignored by triangle.', color: '#f783ac' },
+  volume: { title: 'Volume', help: '0–15 per frame. Without a release point the note is cut when it ends.', color: '#80d010' },
+  arpeggio: { title: 'Arpeggio', help: 'Semitone offset per frame. Loop 0 4 7 for a classic chiptune chord. On noise: shifts the noise pitch.', color: '#fb9839' },
+  pitch: { title: 'Pitch', help: 'Fine pitch offset in 1/16 semitones per frame: vibrato, drops, scoops.', color: '#5c94fc' },
+  duty: { title: 'Duty / Noise mode', help: 'Pulse: 0 = 12.5%, 1 = 25%, 2 = 50%, 3 = 75%. Noise: even = hiss, odd = metallic. Ignored by triangle.', color: '#c84c0c' },
 };
 
 const PRESETS: Record<EnvelopeKind, { name: string; env: Envelope }[]> = {
@@ -95,16 +95,16 @@ function EnvelopeEditor({ inst, kind }: { inst: Instrument; kind: EnvelopeKind }
     c.style.height = `${H}px`;
     const g = c.getContext('2d')!;
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    g.fillStyle = '#15171c';
+    g.fillStyle = '#171717';
     g.fillRect(0, 0, width, H);
     const yOf = (v: number) => GRAPH_H - 4 - ((v - min) / (max - min)) * (GRAPH_H - 8);
     const zeroY = yOf(Math.max(min, Math.min(max, 0)));
     // guide lines
-    g.fillStyle = '#262a33';
+    g.fillStyle = '#2a2a2a';
     const steps = max - min <= 15 ? 1 : max - min <= 48 ? 12 : 16;
     for (let v = min; v <= max; v += steps) g.fillRect(0, Math.round(yOf(v)), width, 1);
     if (min < 0) {
-      g.fillStyle = '#4a5060';
+      g.fillStyle = '#505050';
       g.fillRect(0, Math.round(zeroY), width, 1);
     }
     const font = getComputedStyle(document.body).fontFamily;
@@ -115,33 +115,33 @@ function EnvelopeEditor({ inst, kind }: { inst: Instrument; kind: EnvelopeKind }
       const x = 2 + i * barW;
       const inLoop = envelope.loop >= 0 && i >= envelope.loop && (envelope.release < 0 || i < envelope.release || envelope.loop >= envelope.release);
       const inRelease = envelope.release >= 0 && i >= envelope.release;
-      g.fillStyle = inRelease ? '#868e96' : info.color;
+      g.fillStyle = inRelease ? '#8d8d8d' : info.color;
       g.globalAlpha = inLoop ? 1 : 0.8;
       const y = yOf(v);
       if (min < 0) g.fillRect(x, Math.min(y, zeroY), barW - 1, Math.max(2, Math.abs(zeroY - y)));
       else g.fillRect(x, y, barW - 1, GRAPH_H - 4 - y + 2);
       g.globalAlpha = 1;
       if (barW >= 14) {
-        g.fillStyle = '#d8dce6';
+        g.fillStyle = '#dcdcdc';
         g.fillText(String(v), x + barW / 2, Math.max(9, Math.min(GRAPH_H - 6, (min < 0 && v < 0 ? y + 10 : y - 4))));
       }
     }
     // strips
     const strip = (row: number, label: string, idx: number, color: string) => {
       const y = GRAPH_H + row * STRIP_H;
-      g.fillStyle = '#1e2128';
+      g.fillStyle = '#212121';
       g.fillRect(0, y, width, STRIP_H - 1);
       for (let i = 0; i < n; i++) {
-        g.fillStyle = i === idx ? color : i % 2 ? '#262a33' : '#2b2f38';
+        g.fillStyle = i === idx ? color : i % 2 ? '#2a2a2a' : '#2f2f2f';
         g.fillRect(2 + i * barW, y + 1, barW - 1, STRIP_H - 3);
       }
-      g.fillStyle = '#8b93a7';
+      g.fillStyle = '#939393';
       g.textAlign = 'right';
       g.fillText(label, width - 4, y + 10);
       g.textAlign = 'center';
     };
-    strip(0, 'loop', envelope.loop, '#51cf66');
-    strip(1, 'release', envelope.release, '#f7a440');
+    strip(0, 'loop', envelope.loop, '#80d010');
+    strip(1, 'release', envelope.release, '#fb9839');
   }, [envelope, width, barW, n, min, max, info.color, H]);
 
   const valueAt = (y: number) => Math.round(min + ((GRAPH_H - 4 - y) / (GRAPH_H - 8)) * (max - min));

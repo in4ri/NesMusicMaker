@@ -37,6 +37,7 @@ export function PianoRollHelp() {
         <li><b>Right-click</b> a note to delete it.</li>
         <li><b>Click a piano key</b> to select every note on that key, and Shift- or Cmd-click to add more keys. Then press <b>↑/↓</b> to move them up or down (hold Shift for a whole octave), which is handy for changing key.</li>
         <li><b>Volume lane</b> (bottom): drag the stalks to make notes louder or quieter.</li>
+        <li><b>Quantise</b> (right panel): line notes up with the Snap grid. Pick selected notes, this channel, the whole pattern or the whole song, then Starts, Ends or Both. Handy after importing a MIDI or NSF file.</li>
         <li><b>Right-hand panel</b>: select notes to change their volume, give them effects (vibrato, bend, glide) or turn them into an <b>arpeggio chord</b>.</li>
       </ul>
       <h5>Real-NES rules</h5>

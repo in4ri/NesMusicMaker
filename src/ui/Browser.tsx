@@ -16,7 +16,7 @@ function Waveform({ sample }: { sample: DmcSample }) {
     const g = c.getContext('2d')!;
     const pcm = decodeDmc(base64ToBytes(sample.data));
     g.clearRect(0, 0, w, h);
-    g.strokeStyle = '#da77f2';
+    g.strokeStyle = '#ffffff';
     g.beginPath();
     for (let x = 0; x < w; x++) {
       const i = Math.floor((x / w) * pcm.length);

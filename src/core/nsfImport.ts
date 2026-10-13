@@ -6,6 +6,7 @@
 // through well; vibrato, slides and other per-frame tricks are simplified.
 
 import { emptySong, env, INSTRUMENT_COLORS, PATTERN_COLORS } from '../model/defaults';
+import { PALETTE } from '../model/palette';
 import { CHANNELS, PPQ, TICKS_PER_STEP, newId, type DmcSample, type Instrument, type Note, type Pattern, type Song } from '../model/types';
 import { Apu } from './apu';
 import { bytesToBase64 } from './dmc';
@@ -471,7 +472,7 @@ export function transcribe(file: NsfFile, capture: NsfCapture, opts: NsfImportOp
 
   const pulseInst = new InstrumentBuilder('NSF Pulse', 16);
   const noiseInst = new InstrumentBuilder('NSF Drum', 12);
-  const triInst: Instrument = { id: newId('i'), name: 'NSF Triangle', color: '#8ce99a', volume: env([15]), arpeggio: env([0]), pitch: env([0]), duty: env([2]) };
+  const triInst: Instrument = { id: newId('i'), name: 'NSF Triangle', color: PALETTE.green, volume: env([15]), arpeggio: env([0]), pitch: env([0]), duty: env([2]) };
   const channelNotes: Note[][] = CHANNELS.map(() => []);
 
   raw.forEach((notes, ch) => {

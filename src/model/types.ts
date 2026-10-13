@@ -1,3 +1,4 @@
+import { PALETTE } from './palette';
 import type { Region } from '../core/tables';
 
 /** Pulses per quarter note. One 16th-note step = 12 ticks. */
@@ -15,11 +16,11 @@ export interface ChannelInfo {
 }
 
 export const CHANNELS: ChannelInfo[] = [
-  { index: 0, name: 'Pulse 1', short: 'P1', kind: 'pulse', color: '#ff6b6b' },
-  { index: 1, name: 'Pulse 2', short: 'P2', kind: 'pulse', color: '#ffa94d' },
-  { index: 2, name: 'Triangle', short: 'TRI', kind: 'triangle', color: '#69db7c' },
-  { index: 3, name: 'Noise', short: 'NOI', kind: 'noise', color: '#74c0fc' },
-  { index: 4, name: 'DMC', short: 'DMC', kind: 'dmc', color: '#da77f2' },
+  { index: 0, name: 'Pulse 1', short: 'P1', kind: 'pulse', color: PALETTE.orange },
+  { index: 1, name: 'Pulse 2', short: 'P2', kind: 'pulse', color: PALETTE.pink },
+  { index: 2, name: 'Triangle', short: 'TRI', kind: 'triangle', color: PALETTE.green },
+  { index: 3, name: 'Noise', short: 'NOI', kind: 'noise', color: PALETTE.blue },
+  { index: 4, name: 'DMC', short: 'DMC', kind: 'dmc', color: PALETTE.cyan },
 ];
 
 /**

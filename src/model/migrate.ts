@@ -1,5 +1,6 @@
 // Upgrades for project files saved by older versions.
 
+import { INSTRUMENT_PALETTE, nearestPaletteColor, PATTERN_PALETTE } from './palette';
 import { CHANNELS, type Song } from './types';
 
 /**
@@ -17,4 +18,10 @@ export function adoptChannelSounds(song: Song) {
     }
     for (const n of notes) if (n.instrument === song.channels[ch].instrument) n.instrument = '';
   });
+}
+
+/** Bring instrument and pattern colours from older projects into the app's palette. */
+export function adoptPalette(song: Song) {
+  for (const i of song.instruments) i.color = nearestPaletteColor(i.color, INSTRUMENT_PALETTE);
+  for (const p of song.patterns) p.color = nearestPaletteColor(p.color, PATTERN_PALETTE);
 }

@@ -1,3 +1,4 @@
+import { INSTRUMENT_PALETTE, PATTERN_PALETTE } from './palette';
 import {
   CHANNELS,
   TICKS_PER_STEP,
@@ -10,8 +11,8 @@ import {
   type Song,
 } from './types';
 
-export const PATTERN_COLORS = ['#5c7cfa', '#20c997', '#f06595', '#fab005', '#845ef7', '#ff922b', '#15aabf', '#94d82d'];
-export const INSTRUMENT_COLORS = ['#ff8787', '#ffc078', '#8ce99a', '#74c0fc', '#b197fc', '#faa2c1', '#ffe066', '#66d9e8'];
+export const PATTERN_COLORS = PATTERN_PALETTE;
+export const INSTRUMENT_COLORS = INSTRUMENT_PALETTE;
 
 export function env(values: number[], loop = -1, release = -1): Envelope {
   return { values, loop, release };

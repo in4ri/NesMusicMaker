@@ -283,7 +283,7 @@ function buildContext(song: Song): ChannelContext {
   const fallbackInstrument: Instrument = song.instruments[0] ?? {
     id: '',
     name: 'Default',
-    color: '#888',
+    color: '#888888',
     volume: { values: [15], loop: -1, release: -1 },
     arpeggio: { values: [0], loop: -1, release: -1 },
     pitch: { values: [0], loop: -1, release: -1 },

@@ -9,7 +9,7 @@ import { buildNsf } from './core/nsf';
 import { renderWav } from './core/wav';
 import { defaultInstruments, emptyPattern, emptySong, env, INSTRUMENT_COLORS } from './model/defaults';
 import { currentPattern, fixSelection, useStore } from './model/store';
-import { adoptChannelSounds } from './model/migrate';
+import { adoptChannelSounds, adoptPalette } from './model/migrate';
 import { CHANNELS, newId, type Instrument, type Song } from './model/types';
 import { openProjectFile, pickFile, saveBinaryFile, saveProjectFile } from './platform/files';
 
@@ -60,6 +60,7 @@ export function normalizeSong(raw: unknown): Song {
   song.channels = CHANNELS.map((_, ch) => s.channels?.[ch] ?? base.channels[ch]);
   song.automation = (s.automation ?? []).filter((l) => l && Array.isArray(l.points));
   adoptChannelSounds(song);
+  adoptPalette(song);
   return song;
 }
 

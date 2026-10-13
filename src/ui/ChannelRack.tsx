@@ -19,14 +19,14 @@ export function pitchOptions(kind: ChannelInfo['kind'], sampleNames: string[], l
 function Led({ ch }: { ch: number }) {
   const level = usePlayhead((s) => s.meters[ch] ?? 0);
   const color = CHANNELS[ch].color;
-  return <span className="led" style={{ background: level > 0.01 ? color : '#333', opacity: 0.35 + Math.min(1, level) * 0.65 }} />;
+  return <span className="led" style={{ background: level > 0.01 ? color : '#333333', opacity: 0.35 + Math.min(1, level) * 0.65 }} />;
 }
 
 function PlayingStep({ steps }: { steps: number }) {
   const frame = usePlayhead((s) => s.frame);
   const playing = useStore((s) => s.playing && s.playMode === 'pattern');
   const step = playing ? Math.floor(playheadTick(frame) / TICKS_PER_STEP) : -1;
-  return <style>{step >= 0 && step < steps ? `.steps .step[data-step="${step}"] { border-color: #fff; }` : ''}</style>;
+  return <style>{step >= 0 && step < steps ? `.steps .step[data-step="${step}"] { border-color: #ffffff; }` : ''}</style>;
 }
 
 export function ChannelRack() {

@@ -97,3 +97,43 @@ describe('transpose song', () => {
     expect(low.patterns[0].notes[0].every((n) => n.pitch >= lowestPitch(0, 'ntsc'))).toBe(true);
   });
 });
+
+describe('quantise', () => {
+  it('snaps starts (keeping length), ends, or both', async () => {
+    const { quantizeNotes } = await import('../src/core/quantize');
+    const mk = () => [makeNote(13, 20, 60, ''), makeNote(47, 10, 62, '')];
+    const starts = mk();
+    quantizeNotes(starts, 12, 'start', 384);
+    expect(starts.map((n) => [n.tick, n.length])).toEqual([[12, 20], [48, 10]]);
+    const ends = mk();
+    quantizeNotes(ends, 12, 'end', 384);
+    expect(ends.map((n) => [n.tick, n.tick + n.length])).toEqual([[13, 36], [47, 60]]);
+    const both = mk();
+    expect(quantizeNotes(both, 12, 'both', 384)).toBe(2);
+    expect(both.map((n) => [n.tick, n.length])).toEqual([[12, 24], [48, 12]]);
+  });
+
+  it('quantises a whole song and keeps channels one-note-at-a-time', async () => {
+    const { quantizeSong } = await import('../src/core/quantize');
+    const song = demoSong();
+    const p = song.patterns[0];
+    p.notes[0] = [makeNote(1, 20, 60, ''), makeNote(23, 12, 62, '')]; // will both want to start near 0/24
+    const changed = quantizeSong(song, 'song', { grid: 12, what: 'both', patternId: p.id, channel: 0, selected: new Set() });
+    expect(changed).toBeGreaterThan(0);
+    expect(p.notes[0].map((n) => [n.tick, n.length])).toEqual([[0, 24], [24, 12]]);
+    expect(checkSong(song).filter((i) => i.key.startsWith('overlap'))).toEqual([]);
+  });
+});
+
+describe('palette', () => {
+  it('maps old project colours to the nearest NES colour', async () => {
+    const { adoptPalette } = await import('../src/model/migrate');
+    const { INSTRUMENT_PALETTE, PATTERN_PALETTE } = await import('../src/model/palette');
+    const song = demoSong();
+    song.instruments[0].color = '#ff6b6b'; // an old pre-palette colour
+    song.patterns[0].color = '#F6F6F7'; // the earlier off-white (not allowed for patterns)
+    adoptPalette(song);
+    expect(INSTRUMENT_PALETTE).toContain(song.instruments[0].color);
+    expect(PATTERN_PALETTE).toContain(song.patterns[0].color);
+  });
+});

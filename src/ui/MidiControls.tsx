@@ -34,7 +34,7 @@ function ActivityLed() {
     const t = setTimeout(() => setLit(false), 120);
     return () => clearTimeout(t);
   }, [activity]);
-  return <span className="led" style={{ background: lit ? 'var(--green)' : '#333' }} />;
+  return <span className="led" style={{ background: lit ? 'var(--green)' : '#333333' }} />;
 }
 
 export function MidiMenu() {

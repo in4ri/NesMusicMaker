@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { toast } from '../actions';
+import { quantizeSong, type QuantizeScope, type QuantizeWhat } from '../core/quantize';
 import { currentPattern, useStore } from '../model/store';
 import { ARP_STYLES, CHANNELS, CHORD_SHAPES, PPQ, type ArpStyle, type Note, type NoteFx } from '../model/types';
 
@@ -93,6 +95,8 @@ export function NotePanel() {
           </select>
         </div>
       )}
+
+      <QuantizeControls hasSelection={notes.length > 0} />
 
       <h4>{notes.length ? `${notes.length} note${notes.length > 1 ? 's' : ''} selected` : 'No notes selected'}</h4>
       {notes.length > 0 && (
@@ -260,6 +264,56 @@ export function NotePanel() {
         <li><span className="kbd">Del</span> delete selection</li>
       </ul>
     </div>
+  );
+}
+
+const SCOPES: { value: QuantizeScope; label: string }[] = [
+  { value: 'selection', label: 'Selected notes' },
+  { value: 'channel', label: 'This channel' },
+  { value: 'pattern', label: 'Whole pattern' },
+  { value: 'song', label: 'Whole song' },
+];
+
+/** Snap note starts/ends to the Snap grid, for a selection or a wider scope (handy after importing). */
+function QuantizeControls({ hasSelection }: { hasSelection: boolean }) {
+  const s = useStore();
+  const [chosen, setChosen] = useState<QuantizeScope | null>(null);
+  const scope: QuantizeScope = chosen ?? (hasSelection ? 'selection' : 'channel');
+  const disabled = scope === 'selection' && !hasSelection;
+  const gridName = SNAPS.find((o) => o.ticks === s.snap)?.label ?? `${s.snap} ticks`;
+
+  const run = (what: QuantizeWhat) => {
+    let changed = 0;
+    s.update((song) => {
+      changed = quantizeSong(song, scope, {
+        grid: s.snap,
+        what,
+        patternId: s.selectedPatternId,
+        channel: s.selectedChannel,
+        selected: new Set(s.selectedNoteIds),
+      });
+    });
+    toast(changed ? `Quantised ${changed} note${changed === 1 ? '' : 's'} to ${gridName}. Cmd+Z to undo.` : `Already on the ${gridName} grid.`);
+  };
+
+  return (
+    <>
+      <h4>Quantise</h4>
+      <div className="field" title="Which notes to line up with the grid">
+        <label>Notes</label>
+        <select value={scope} onChange={(e) => setChosen(e.target.value as QuantizeScope)}>
+          {SCOPES.map((o) => (
+            <option key={o.value} value={o.value} disabled={o.value === 'selection' && !hasSelection}>{o.label}</option>
+          ))}
+        </select>
+      </div>
+      <div className="button-row" title={`Snap to the ${gridName} grid (change it with Snap above)`}>
+        <button disabled={disabled} onClick={() => run('start')} title="Move notes so they start on the grid (lengths unchanged)">Starts</button>
+        <button disabled={disabled} onClick={() => run('end')} title="Change lengths so notes end on the grid">Ends</button>
+        <button disabled={disabled} onClick={() => run('both')} title="Starts and ends on the grid">Both</button>
+      </div>
+      <div className="small" style={{ marginBottom: 6 }}>Lines notes up with the {gridName} grid.</div>
+    </>
   );
 }
 

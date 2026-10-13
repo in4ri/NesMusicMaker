@@ -140,7 +140,7 @@ export function PianoRoll() {
     // Notes without their own instrument use the channel's sound.
     const instColor = { get: (id: string) => colorMap.get(id || channelSound) };
 
-    g.fillStyle = '#1e2128';
+    g.fillStyle = '#212121';
     g.fillRect(0, 0, W, size.h);
 
     // Rows
@@ -151,9 +151,9 @@ export function PianoRoll() {
     rows.forEach((row, i) => {
       const y = geo.y(i);
       if (y + rowH < RULER_H || y > geo.gridBottom) return;
-      g.fillStyle = row.black ? '#23262e' : '#2b2f38';
+      g.fillStyle = row.black ? '#262626' : '#2f2f2f';
       g.fillRect(KEYS_W, y, W, rowH);
-      g.fillStyle = row.c ? '#454b5a' : '#20232a';
+      g.fillStyle = row.c ? '#4b4b4b' : '#232323';
       g.fillRect(KEYS_W, y + rowH - 1, W, 1);
     });
 
@@ -163,7 +163,7 @@ export function PianoRoll() {
       if (top < geo.gridBottom) {
         g.fillStyle = 'rgba(0,0,0,0.45)';
         g.fillRect(KEYS_W, top, W - KEYS_W, geo.gridBottom - top);
-        g.strokeStyle = 'rgba(255,107,107,0.18)';
+        g.strokeStyle = 'rgba(216,40,0,0.35)';
         g.lineWidth = 1;
         g.beginPath();
         for (let x = KEYS_W - (geo.gridBottom - top); x < W; x += 12) {
@@ -171,7 +171,7 @@ export function PianoRoll() {
           g.lineTo(x + (geo.gridBottom - top), top);
         }
         g.stroke();
-        g.fillStyle = '#ff8787';
+        g.fillStyle = '#d82800';
         g.font = `11px ${getComputedStyle(document.body).fontFamily}`;
         g.fillText(`Pulse channels can't play below ${noteName(lowest)}`, KEYS_W + 10, top + 14);
       }
@@ -183,7 +183,7 @@ export function PianoRoll() {
     const gridStep = v.pxPerTick * st.snap >= 6 ? st.snap : TICKS_PER_STEP;
     for (let t = Math.floor(t0 / gridStep) * gridStep; t <= t1; t += gridStep) {
       const x = Math.round(geo.x(t)) + 0.5;
-      g.fillStyle = t % tpb === 0 ? '#5a6275' : t % PPQ === 0 ? '#3f4554' : '#2a2e37';
+      g.fillStyle = t % tpb === 0 ? '#626262' : t % PPQ === 0 ? '#454545' : '#2e2e2e';
       g.fillRect(x, RULER_H, 1, geo.gridBottom - RULER_H);
     }
     // Outside the pattern
@@ -191,7 +191,7 @@ export function PianoRoll() {
     if (endX < W) {
       g.fillStyle = 'rgba(0,0,0,0.45)';
       g.fillRect(endX, RULER_H, W - endX, geo.gridBottom);
-      g.fillStyle = '#f7a440';
+      g.fillStyle = '#fb9839';
       g.fillRect(endX, RULER_H, 2, geo.gridBottom - RULER_H);
     }
 
@@ -233,7 +233,7 @@ export function PianoRoll() {
       const y = geo.y(ri);
       const w = Math.max(3, n.length * v.pxPerTick);
       if (x > W || x + w < KEYS_W || y > geo.gridBottom || y + rowH < RULER_H) continue;
-      const color = kind === 'dmc' ? CHANNELS[4].color : instColor.get(n.instrument) ?? '#aaa';
+      const color = kind === 'dmc' ? CHANNELS[4].color : instColor.get(n.instrument) ?? '#aaaaaa';
       g.globalAlpha = 0.35 + (n.volume / 15) * 0.65;
       g.fillStyle = color;
       g.fillRect(x + 0.5, y + 1, w - 1, rowH - 2);
@@ -256,7 +256,7 @@ export function PianoRoll() {
       ].join('');
       const label = (kind === 'pulse' || kind === 'triangle' ? noteName(n.pitch) : kind === 'noise' ? n.pitch.toString(16).toUpperCase() : rows[ri].label) + (marks ? ' ' + marks : '');
       if (w > 22 && rowH >= 10) {
-        g.fillStyle = '#111';
+        g.fillStyle = '#111111';
         g.save();
         g.beginPath();
         g.rect(x, y, w - 3, rowH);
@@ -275,15 +275,15 @@ export function PianoRoll() {
         const ri = rowIndex.get(a.pitch);
         if (ri === undefined) continue;
         const x0 = geo.x(next.tick), x1 = geo.x(a.tick + a.length);
-        g.fillStyle = 'rgba(255,60,60,0.55)';
+        g.fillStyle = 'rgba(216,40,0,0.75)';
         g.fillRect(x0, geo.y(ri) + 1, Math.max(2, x1 - x0), rowH - 2);
       }
     }
 
     const d = drag.current;
     if (d && d.kind === 'box') {
-      g.fillStyle = 'rgba(92,124,250,0.15)';
-      g.strokeStyle = '#5c7cfa';
+      g.fillStyle = 'rgba(92,148,252,0.15)';
+      g.strokeStyle = '#5c94fc';
       g.lineWidth = 1;
       const bx = Math.min(d.x0, d.x1), by = Math.min(d.y0, d.y1);
       g.fillRect(bx, by, Math.abs(d.x1 - d.x0), Math.abs(d.y1 - d.y0));
@@ -294,11 +294,11 @@ export function PianoRoll() {
     // Velocity lane
     if (laneH) {
       const top = geo.gridBottom;
-      g.fillStyle = '#17191e';
+      g.fillStyle = '#191919';
       g.fillRect(0, top, W, laneH);
-      g.fillStyle = '#3a3f4d';
+      g.fillStyle = '#3f3f3f';
       g.fillRect(0, top, W, 1);
-      g.fillStyle = '#8b93a7';
+      g.fillStyle = '#939393';
       g.font = `10px ${getComputedStyle(document.body).fontFamily}`;
       g.fillText('Volume', 8, top + 12);
       g.save();
@@ -308,7 +308,7 @@ export function PianoRoll() {
       for (const n of pattern.notes[ch]) {
         const x = geo.x(n.tick);
         const h = (n.volume / 15) * (laneH - 14);
-        g.fillStyle = selected.has(n.id) ? '#ffffff' : instColor.get(n.instrument) ?? '#aaa';
+        g.fillStyle = selected.has(n.id) ? '#ffffff' : instColor.get(n.instrument) ?? '#aaaaaa';
         g.fillRect(x, top + laneH - h - 2, 3, h);
         g.beginPath();
         g.arc(x + 1.5, top + laneH - h - 2, 3, 0, Math.PI * 2);
@@ -318,26 +318,26 @@ export function PianoRoll() {
     }
 
     // Ruler
-    g.fillStyle = '#22252d';
+    g.fillStyle = '#252525';
     g.fillRect(KEYS_W, 0, W, RULER_H);
-    g.fillStyle = '#3a3f4d';
+    g.fillStyle = '#3f3f3f';
     g.fillRect(KEYS_W, RULER_H - 1, W, 1);
     g.font = `11px ${getComputedStyle(document.body).fontFamily}`;
     for (let t = Math.floor(t0 / PPQ) * PPQ; t <= t1; t += PPQ) {
       const x = geo.x(t);
       if (x < KEYS_W) continue;
       if (t % tpb === 0) {
-        g.fillStyle = '#d8dce6';
+        g.fillStyle = '#dcdcdc';
         g.fillText(String(t / tpb + 1), x + 3, RULER_H / 2);
         g.fillRect(x, 4, 1, RULER_H - 4);
       } else {
-        g.fillStyle = '#5a6275';
+        g.fillStyle = '#626262';
         g.fillRect(x, RULER_H - 7, 1, 6);
       }
     }
 
     // Keyboard
-    g.fillStyle = '#15171c';
+    g.fillStyle = '#171717';
     g.fillRect(0, RULER_H, KEYS_W, geo.gridBottom - RULER_H);
     g.save();
     g.beginPath();
@@ -351,15 +351,15 @@ export function PianoRoll() {
       if (y + rowH < RULER_H || y > geo.gridBottom) return;
       const pitched = kind === 'pulse' || kind === 'triangle';
       const lit = selectedPitches.has(row.pitch);
-      g.fillStyle = lit ? (row.black ? '#b8732a' : '#f7a440') : pitched ? (row.black ? '#202228' : '#e9ecef') : row.black ? '#2b2f38' : '#353a46';
+      g.fillStyle = lit ? (row.black ? '#c84c0c' : '#fb9839') : pitched ? (row.black ? '#222222' : '#ebebeb') : row.black ? '#2f2f2f' : '#3a3a3a';
       g.fillRect(0, y, pitched && row.black ? KEYS_W * 0.62 : KEYS_W - 1, rowH - 1);
       if (!pitched || row.c || rowH >= 14) {
-        g.fillStyle = pitched && !row.black ? '#333' : '#c8cdd8';
+        g.fillStyle = pitched && !row.black ? '#333333' : '#cdcdcd';
         if (!pitched || !row.black) g.fillText(row.label, 4, y + rowH / 2 + 0.5, KEYS_W - 8);
       }
     });
     g.restore();
-    g.fillStyle = '#22252d';
+    g.fillStyle = '#252525';
     g.fillRect(0, 0, KEYS_W, RULER_H);
 
     // Step-entry cursor (record armed while stopped)
@@ -367,7 +367,7 @@ export function PianoRoll() {
     if (input.record && !st.playing) {
       const x = geo.x(input.stepCursor);
       if (x >= KEYS_W) {
-        g.fillStyle = '#5c7cfa';
+        g.fillStyle = '#5c94fc';
         g.fillRect(x, RULER_H, 2, geo.gridBottom - RULER_H);
         g.beginPath();
         g.moveTo(x - 6, 0);
@@ -382,7 +382,7 @@ export function PianoRoll() {
       const tick = playheadTick(usePlayhead.getState().frame);
       const x = geo.x(tick);
       if (x >= KEYS_W) {
-        g.fillStyle = '#9dfc9d';
+        g.fillStyle = '#80d010';
         g.fillRect(x, 0, 2, size.h);
       }
     }

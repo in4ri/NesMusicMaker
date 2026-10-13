@@ -37,7 +37,7 @@ function visibleLanes(st: AppState): LaneRef[] {
   return st.showAutomation ? ALL_LANES.filter((l) => st.automationVisible[l.key]) : [];
 }
 
-const LANE_BG: Record<string, string> = { volume: '#16231a', duty: '#211a2b', detune: '#16202b' };
+const LANE_BG: Record<string, string> = { volume: '#1e1e1e', duty: '#1e1e1e', detune: '#1e1e1e' };
 const LANE_GUIDES: Record<string, number[]> = { volume: [0, 5, 10, 15], duty: [0, 1, 2, 3], detune: [-50, -25, 0, 25, 50] };
 
 /** Apply a change to a lane's points, creating the lane if needed. */
@@ -118,7 +118,7 @@ export function Playlist() {
     const bar = ticksPerBar(song);
     const font = getComputedStyle(document.body).fontFamily;
 
-    g.fillStyle = '#1e2128';
+    g.fillStyle = '#212121';
     g.fillRect(0, 0, W, H);
 
     g.save();
@@ -127,20 +127,20 @@ export function Playlist() {
     g.clip();
     for (let t = 0; t < PLAYLIST_TRACKS; t++) {
       const y = G.y(t);
-      g.fillStyle = t % 2 ? '#262931' : '#2b2f38';
+      g.fillStyle = t % 2 ? '#292929' : '#2f2f2f';
       g.fillRect(HEAD_W, y, W, TRACK_H);
-      g.fillStyle = '#1b1d23';
+      g.fillStyle = '#1d1d1d';
       g.fillRect(HEAD_W, y + TRACK_H - 1, W, 1);
     }
     const b0 = Math.max(0, Math.floor(G.tickAt(HEAD_W) / bar));
     const b1 = Math.ceil(G.tickAt(W) / bar);
     for (let b = b0; b <= b1; b++) {
       const x = Math.round(G.x(b * bar)) + 0.5;
-      g.fillStyle = b % 4 === 0 ? '#4a5060' : '#353a46';
+      g.fillStyle = b % 4 === 0 ? '#505050' : '#3a3a3a';
       g.fillRect(x, RULER_H, 1, H);
       if (v.pxPerTick * song.beatsPerBar * 48 > 60) {
         for (let k = 1; k < song.beatsPerBar; k++) {
-          g.fillStyle = '#2d313b';
+          g.fillStyle = '#313131';
           g.fillRect(x + (k * bar * v.pxPerTick) / song.beatsPerBar, RULER_H, 1, H);
         }
       }
@@ -159,7 +159,7 @@ export function Playlist() {
       g.fillRect(x + 1, y + 2, w - 2, TRACK_H - 5);
       g.fillStyle = 'rgba(0,0,0,0.35)';
       g.fillRect(x + 1, y + 2, w - 2, 13);
-      g.fillStyle = '#fff';
+      g.fillStyle = '#ffffff';
       g.font = `bold 10px ${font}`;
       g.textBaseline = 'middle';
       g.save();
@@ -179,7 +179,7 @@ export function Playlist() {
       });
       g.restore();
       if (selected) {
-        g.strokeStyle = '#fff';
+        g.strokeStyle = '#ffffff';
         g.lineWidth = 1;
         g.strokeRect(x + 1.5, y + 2.5, w - 3, TRACK_H - 6);
       }
@@ -194,13 +194,13 @@ export function Playlist() {
         const clip = song.playlist.find((cl) => cl.id === id);
         if (!clip) continue;
         const y = G.y(clip.track);
-        g.fillStyle = 'rgba(255,60,60,0.35)';
+        g.fillStyle = 'rgba(216,40,0,0.45)';
         g.fillRect(x0, y + 2, x1 - x0, TRACK_H - 5);
-        g.strokeStyle = '#ff6b6b';
+        g.strokeStyle = '#d82800';
         g.lineWidth = 2;
         g.strokeRect(x0 + 1, y + 3, x1 - x0 - 2, TRACK_H - 7);
         g.lineWidth = 1;
-        g.fillStyle = '#ffe3e3';
+        g.fillStyle = '#ffffff';
         g.font = `bold 10px ${font}`;
         g.fillText(`⚠ ${c.channels.map((ch) => CHANNELS[ch].short).join(' ')}`, x0 + 4, y + TRACK_H - 10);
       }
@@ -219,7 +219,7 @@ export function Playlist() {
         g.fillStyle = lv === 0 && info.min < 0 ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)';
         g.fillRect(HEAD_W, Math.round(G.valueY(info, top, lv)), W, 1);
       }
-      g.fillStyle = '#0d150f';
+      g.fillStyle = '#121212';
       g.fillRect(HEAD_W, top, W, 1);
 
       const points = sortedLanePoints(song, lane.channel, info.param);
@@ -234,7 +234,7 @@ export function Playlist() {
           g.stroke();
           g.setLineDash([]);
         }
-        g.fillStyle = '#8b93a7';
+        g.fillStyle = '#939393';
         const what = info.spanOnly ? 'instrument duty' : info.format(info.neutral);
         g.fillText(`${what} · click to add ${info.label.toLowerCase()} points`, HEAD_W + 8, top + AUTO_H / 2 + 4);
         return;
@@ -248,7 +248,7 @@ export function Playlist() {
         g.fillStyle = 'rgba(0,0,0,0.25)';
         if (x0 > HEAD_W) g.fillRect(HEAD_W, top + 1, x0 - HEAD_W, AUTO_H - 1);
         if (x1 < W) g.fillRect(x1, top + 1, W - x1, AUTO_H - 1);
-        g.fillStyle = '#6c7386';
+        g.fillStyle = '#737373';
         g.font = `10px ${font}`;
         if (x0 - HEAD_W > 70) g.fillText('instrument', Math.max(HEAD_W, x0 - 64), top + AUTO_H - 6);
         if (W - x1 > 70) g.fillText('instrument', x1 + 6, top + AUTO_H - 6);
@@ -280,7 +280,7 @@ export function Playlist() {
         g.arc(x, y, 4, 0, Math.PI * 2);
         g.fillStyle = color;
         g.fill();
-        g.strokeStyle = '#111';
+        g.strokeStyle = '#111111';
         g.stroke();
         // Label above unless the point is near the top (like the reference screenshot).
         g.fillStyle = color;
@@ -291,12 +291,12 @@ export function Playlist() {
 
     // Song end + loop
     const end = songEndTick(song);
-    g.fillStyle = '#f7a440';
+    g.fillStyle = '#fb9839';
     g.fillRect(G.x(end), RULER_H, 2, H);
     g.restore();
 
     // Ruler
-    g.fillStyle = '#22252d';
+    g.fillStyle = '#252525';
     g.fillRect(HEAD_W, 0, W, RULER_H);
     g.font = `11px ${font}`;
     g.textBaseline = 'middle';
@@ -304,17 +304,17 @@ export function Playlist() {
     for (let b = b0; b <= b1; b++) {
       const x = G.x(b * bar);
       if (x < HEAD_W) continue;
-      g.fillStyle = '#5a6275';
+      g.fillStyle = '#626262';
       g.fillRect(x, RULER_H - 8, 1, 8);
       if (b % labelEvery === 0) {
-        g.fillStyle = '#d8dce6';
+        g.fillStyle = '#dcdcdc';
         g.fillText(String(b + 1), x + 3, 9);
       }
     }
     // Loop marker
     const lx = G.x(song.loopStart);
     if (lx >= HEAD_W) {
-      g.fillStyle = '#51cf66';
+      g.fillStyle = '#80d010';
       g.fillRect(lx, 12, 2, RULER_H - 12);
       g.beginPath();
       g.moveTo(lx, 12);
@@ -322,14 +322,14 @@ export function Playlist() {
       g.lineTo(lx + 22, 24);
       g.lineTo(lx, 24);
       g.fill();
-      g.fillStyle = '#111';
+      g.fillStyle = '#111111';
       g.font = `bold 9px ${font}`;
       g.fillText('LOOP', lx + 2, 18.5);
     }
     // Start marker
     const sx = G.x(st.songStartTick);
     if (sx >= HEAD_W) {
-      g.fillStyle = '#f7a440';
+      g.fillStyle = '#fb9839';
       g.beginPath();
       g.moveTo(sx - 6, 0);
       g.lineTo(sx + 6, 0);
@@ -338,7 +338,7 @@ export function Playlist() {
     }
 
     // Track headers
-    g.fillStyle = '#22252d';
+    g.fillStyle = '#252525';
     g.fillRect(0, 0, HEAD_W, H);
     g.save();
     g.beginPath();
@@ -346,29 +346,29 @@ export function Playlist() {
     g.clip();
     for (let t = 0; t < PLAYLIST_TRACKS; t++) {
       const y = G.y(t);
-      g.fillStyle = '#2a2e38';
+      g.fillStyle = '#2e2e2e';
       g.fillRect(2, y + 2, HEAD_W - 4, TRACK_H - 4);
-      g.fillStyle = '#8b93a7';
+      g.fillStyle = '#939393';
       g.font = `11px ${font}`;
       g.fillText(`Track ${t + 1}`, 10, y + TRACK_H / 2);
     }
     lanes.forEach((lane, i) => {
       const { info } = lane;
       const top = G.laneTop(i);
-      g.fillStyle = '#1f2329';
+      g.fillStyle = '#222222';
       g.fillRect(2, top + 2, HEAD_W - 4, AUTO_H - 4);
       g.fillStyle = CHANNELS[lane.channel].color;
       g.fillRect(2, top + 2, 3, AUTO_H - 4);
       g.font = `bold 11px ${font}`;
       g.fillText(CHANNELS[lane.channel].name, 10, top + 16);
       g.font = `10px ${font}`;
-      g.fillStyle = '#8b93a7';
+      g.fillStyle = '#939393';
       g.fillText(info.param === 'volume' && CHANNELS[lane.channel].kind === 'triangle' ? 'Volume (on/off)' : info.label, 10, top + 30);
       if (st.playing && st.playMode === 'song') {
         const pts = sortedLanePoints(song, lane.channel, info.param);
         const tick = playheadTick(usePlayhead.getState().frame);
         const active = info.spanOnly ? automationActiveAt(info, pts, tick) : true;
-        g.fillStyle = '#d8dce6';
+        g.fillStyle = '#dcdcdc';
         g.font = `bold 15px ${font}`;
         g.fillText(active ? info.format(Math.round(automationValueAt(pts, tick, info.neutral))) : 'inst.', 10, top + 54);
       }
@@ -379,7 +379,7 @@ export function Playlist() {
     if (st.playing && st.playMode === 'song') {
       const x = G.x(playheadTick(usePlayhead.getState().frame));
       if (x >= HEAD_W) {
-        g.fillStyle = '#9dfc9d';
+        g.fillStyle = '#80d010';
         g.fillRect(x, 0, 2, H);
       }
     }
