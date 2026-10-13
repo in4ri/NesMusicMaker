@@ -1,0 +1,81 @@
+{
+  "name": "nes-music-maker",
+  "productName": "NES Music Maker",
+  "version": "0.1.0",
+  "description": "An FL Studio-style sequencer for composing NES (2A03) music",
+  "author": "Scott McCulloch",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .\"",
+    "web": "vite",
+    "build": "vite build",
+    "start": "vite build && electron .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "dist": "vite build && electron-builder",
+    "dist:mac": "vite build && electron-builder --mac",
+    "dist:win": "vite build && electron-builder --win",
+    "dist:linux": "vite build && electron-builder --linux"
+  },
+  "build": {
+    "appId": "com.nesmusicmaker.app",
+    "productName": "NES Music Maker",
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "fileAssociations": [
+      {
+        "ext": "nesmm",
+        "name": "NES Music Maker Project",
+        "role": "Editor"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.music",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Audio"
+    }
+  },
+  "dependencies": {
+    "immer": "^11.1.21",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "concurrently": "^10.0.6",
+    "cross-env": "^10.1.0",
+    "electron": "^44.7.0",
+    "electron-builder": "^26.15.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.4",
+    "wait-on": "^9.5.1"
+  }
+}
