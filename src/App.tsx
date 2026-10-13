@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { exportNsf, exportWav, loadProjectText, newProject, openProject, saveProject, toast, useToasts } from './actions';
+import { exportNsf, exportSoundEffects, exportWav, loadProjectText, newProject, openProject, saveProject, toast, useToasts } from './actions';
 import { inputNoteOff, inputNoteOn, releaseAll } from './audio/liveInput';
 import { togglePlay } from './audio/sync';
 import { currentPattern, useStore } from './model/store';
@@ -15,6 +15,7 @@ import { InstrumentHelp, PianoRollHelp, PlaylistHelp } from './ui/HelpContent';
 import { HelpButton } from './ui/Popover';
 import { MidiImportDialog, startMidiImport } from './ui/MidiImportDialog';
 import { NsfImportDialog, startNsfImport } from './ui/NsfImportDialog';
+import { SoundEffectsDialog } from './ui/SoundEffectsDialog';
 import { openTranspose, TransposeDialog } from './ui/TransposeDialog';
 import { Toolbar } from './ui/Toolbar';
 
@@ -42,6 +43,7 @@ function runCommand(cmd: string) {
     case 'save-as': return void saveProject(true);
     case 'export-wav': return void exportWav();
     case 'export-nsf': return void exportNsf();
+    case 'export-sfx': return exportSoundEffects();
     case 'undo': return typing ? void document.execCommand('undo') : s.undo();
     case 'redo': return typing ? void document.execCommand('redo') : s.redo();
     case 'select-all': return typing ? void document.execCommand('selectAll') : selectAllNotes();
@@ -150,6 +152,10 @@ function Help({ onClose }: { onClose: () => void }) {
           </tbody>
         </table>
         <p>NSF files play in NES music players and emulators (e.g. NSFPlay, Game Music Emu, Mesen), or on real hardware with a flash cart.</p>
+        <p>
+          <b>SFX</b> (File → Export Sound Effects…) saves every pattern as its own NSF, named after the pattern, into a folder you choose: one
+          short pattern per game sound effect (jump, coin…). For NES Game Builder, keep an effect to 2 channels, 4 seconds and no DMC.
+        </p>
         <button onClick={onClose}>Close</button>
       </div>
     </div>
@@ -242,6 +248,7 @@ export function App() {
       <HardwareCheckDialog />
       <NsfImportDialog />
       <TransposeDialog />
+      <SoundEffectsDialog />
       <Toasts />
       {help && <Help onClose={() => setHelp(false)} />}
     </div>

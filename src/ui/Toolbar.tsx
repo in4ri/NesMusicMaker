@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { addPattern, deletePattern, exportNsf, exportWav, newProject, openProject, saveProject } from '../actions';
+import { addPattern, deletePattern, exportNsf, exportSoundEffects, exportWav, newProject, openProject, saveProject } from '../actions';
 import { playheadTick, stop, togglePlay } from '../audio/sync';
 import { REGIONS } from '../core/tables';
 import { currentPattern, usePlayhead, useStore } from '../model/store';
@@ -57,6 +57,7 @@ export function Toolbar({ onHelp }: { onHelp: () => void }) {
         <button title="Save project (Ctrl+S)" onClick={() => saveProject()}>Save{s.dirty ? '*' : ''}</button>
         <button title="Export audio (Ctrl+E)" onClick={() => exportWav()}>WAV</button>
         <button title="Export NES music file (Ctrl+Shift+E)" onClick={() => exportNsf()}>NSF</button>
+        <button title="Export sound effects: each pattern as its own NSF file, named after the pattern" onClick={() => exportSoundEffects()}>SFX</button>
         <HardwareButton />
       </div>
       <div className="sep" />

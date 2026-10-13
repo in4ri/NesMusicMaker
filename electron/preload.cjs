@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('nesApi', {
   saveProject: (path, text) => ipcRenderer.invoke('save-project', path, text),
   saveBinary: (defaultName, filterName, extensions, bytes) =>
     ipcRenderer.invoke('save-binary', defaultName, filterName, extensions, bytes),
+  saveFiles: (files, defaultFolder) => ipcRenderer.invoke('save-files', files, defaultFolder),
   setTitle: (title) => ipcRenderer.send('set-title', title),
   loadLibrary: () => ipcRenderer.invoke('library-load'),
   saveLibrary: (text) => ipcRenderer.invoke('library-save', text),

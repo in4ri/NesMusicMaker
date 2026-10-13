@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { exportNsf, exportWav, useCheck } from '../actions';
+import { exportNsf, exportSoundEffects, exportWav, useCheck } from '../actions';
 import { checkSong, exportSummary } from '../core/hardwareCheck';
 import { useStore } from '../model/store';
 
@@ -39,6 +39,7 @@ export function HardwareCheckDialog() {
     close();
     if (kind === 'wav') void exportWav(true);
     if (kind === 'nsf') void exportNsf(true);
+    if (kind === 'sfx') exportSoundEffects(true);
   };
 
   return (

@@ -42,6 +42,7 @@ Each channel plays one note at a time. The chip has no hardware effects: vibrato
 - **Export**:
   - **WAV**: renders the song.
   - **NSF**: a real NES music file that plays in NSF players and emulators (NSFPlay, Game Music Emu, Mesen, etc.), or on hardware via a flash cart. It loops from the song's loop point.
+  - **SFX** (File → Export Sound Effects…): every pattern as its own NSF, named after the pattern, written into a folder you choose (one short pattern per game sound effect). The window warns about patterns that break NES Game Builder's sound-effect limits (at most 2 channels, 4 seconds, no DMC). NES Game Builder imports these NSFs, so the NSF player, its start-up table and the stream format are an interface it relies on.
 - **NSF import**: open any `.nsf` file and **▶ Listen** to a track exactly as the NES plays it (its own music code runs on an emulated 6502), or **import it as a new editable project**. The music is transcribed into patterns, notes, volumes, arpeggio chords, instruments (rebuilt from how the notes behave), drum hits and DMC samples, with the tempo and loop point detected automatically. It's a close transcription rather than a perfect copy: vibrato, slides and other fast tricks are simplified, and extra Famicom sound chips (VRC6, FDS, etc.) aren't supported.
 - Undo/redo, a computer-keyboard piano (Z–M and Q–U rows; `-`/`=` change octave), NTSC/PAL, and `.nesmm` project files (JSON).
 
@@ -109,6 +110,7 @@ Every output path consumes the same compiled register stream, so the editor, the
 | `src/core/apu.ts` | 2A03 APU emulation (pulse, triangle, noise, DMC, mixer, filters) |
 | `src/core/compiler.ts` | Song → per-frame register writes (envelopes, effects, DMC triggers) |
 | `src/core/nsf.ts`, `asm6502.ts` | NSF builder and the 6502 player, written in a tiny assembler DSL |
+| `src/core/sfxExport.ts` | Export sound effects: one NSF per pattern, file names, sound-effect limit warnings |
 | `src/core/dmc.ts` | Audio → 1-bit delta PCM conversion, $C000 memory layout |
 | `src/core/cpu6502.ts`, `nsfFile.ts` | 6502 CPU and NSF memory map/player (runs an NSF's music code) |
 | `src/core/nsfImport.ts` | NSF capture → transcription: note segmentation, arpeggios, instruments, tempo and loop detection |

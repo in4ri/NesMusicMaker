@@ -1,9 +1,21 @@
 // File access: uses the Electron bridge when available, otherwise browser download/upload.
 
+export interface NamedFile {
+  name: string;
+  bytes: Uint8Array;
+}
+
+/** `folder` is '' for browser downloads; `written` leaves out files that were already identical. */
+export interface SavedFiles {
+  folder: string;
+  written: number;
+}
+
 export interface NesApi {
   openProject(): Promise<{ path: string; text: string } | null>;
   saveProject(path: string | null, text: string): Promise<string | null>;
   saveBinary(defaultName: string, filterName: string, extensions: string[], bytes: Uint8Array): Promise<string | null>;
+  saveFiles(files: NamedFile[], defaultFolder: string | null): Promise<SavedFiles | null>;
   setTitle(title: string): void;
   loadLibrary(): Promise<string | null>;
   saveLibrary(text: string): Promise<boolean>;
@@ -78,4 +90,14 @@ export async function saveLibraryText(text: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/** Ask for a folder and write the files into it, replacing files of the same names (Electron), or download them (browser). Null if cancelled. */
+export async function saveFilesToFolder(files: NamedFile[], defaultFolder: string | null): Promise<SavedFiles | null> {
+  if (window.nesApi) return window.nesApi.saveFiles(files, defaultFolder);
+  for (const f of files) {
+    download(f.name, f.bytes as BlobPart, 'application/octet-stream');
+    await new Promise((r) => setTimeout(r, 200)); // browsers drop downloads started in the same instant
+  }
+  return { folder: '', written: files.length };
 }

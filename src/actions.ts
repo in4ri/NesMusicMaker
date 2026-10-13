@@ -6,12 +6,13 @@ import { compileSong } from './core/compiler';
 import { checkSong } from './core/hardwareCheck';
 import { bytesToBase64, encodeDmc, layoutDmc } from './core/dmc';
 import { buildNsf } from './core/nsf';
+import { soundEffectNsf, soundEffects } from './core/sfxExport';
 import { renderWav } from './core/wav';
 import { defaultInstruments, emptyPattern, emptySong, env, INSTRUMENT_COLORS } from './model/defaults';
 import { currentPattern, fixSelection, useStore } from './model/store';
 import { adoptChannelSounds, adoptPalette } from './model/migrate';
 import { CHANNELS, newId, type Instrument, type Song } from './model/types';
-import { openProjectFile, pickFile, saveBinaryFile, saveProjectFile } from './platform/files';
+import { openProjectFile, pickFile, saveBinaryFile, saveFilesToFolder, saveProjectFile } from './platform/files';
 
 // ---------- Toasts ----------
 
@@ -96,10 +97,10 @@ export async function saveProject(saveAs = false) {
 // ---------- Export ----------
 
 /** The hardware check window; `pendingExport` is set when it was opened by an export. */
-export const useCheck = create<{ open: boolean; pendingExport: 'wav' | 'nsf' | null }>(() => ({ open: false, pendingExport: null }));
+export const useCheck = create<{ open: boolean; pendingExport: 'wav' | 'nsf' | 'sfx' | null }>(() => ({ open: false, pendingExport: null }));
 
 /** Show the hardware check instead of exporting if anything won't play as drawn. */
-function blockedByCheck(kind: 'wav' | 'nsf') {
+function blockedByCheck(kind: 'wav' | 'nsf' | 'sfx') {
   if (!checkSong(useStore.getState().song).some((i) => i.severity === 'error')) return false;
   useCheck.setState({ open: true, pendingExport: kind });
   return true;
@@ -131,6 +132,36 @@ export async function exportNsf(force = false) {
     if (path !== null) toast(`NSF exported (${(nsf.length / 1024).toFixed(1)} KB)`);
   } catch (e) {
     toast(`NSF export failed: ${(e as Error).message}`, 'error');
+  }
+}
+
+/** The "Export sound effects" window (src/ui/SoundEffectsDialog.tsx); `folder` is the last folder exported to. */
+export const useSfxExport = create<{ open: boolean; folder: string | null }>(() => ({ open: false, folder: null }));
+
+/** Export sound effects: after the same hardware check as the NSF export, choose the patterns to save. */
+export function exportSoundEffects(force = false) {
+  if (!force && blockedByCheck('sfx')) return;
+  useSfxExport.setState({ open: true });
+}
+
+/** Save the chosen patterns as one NSF each into a folder (browser: downloads). Returns false if cancelled or failed. */
+export async function saveSoundEffects(patternIds: string[]) {
+  const { song } = useStore.getState();
+  try {
+    const effects = soundEffects(song).filter((e) => patternIds.includes(e.patternId));
+    const files = effects.map((e) => ({ name: e.fileName, bytes: soundEffectNsf(song, e) }));
+    const saved = await saveFilesToFolder(files, useSfxExport.getState().folder);
+    if (!saved) return false;
+    const n = `${files.length} sound effect${files.length === 1 ? '' : 's'}`;
+    if (!saved.folder) toast(`Downloaded ${n}`);
+    else {
+      useSfxExport.setState({ folder: saved.folder });
+      toast(`Exported ${n} to ${saved.folder}` + (saved.written < files.length ? ` (${files.length - saved.written} unchanged)` : ''));
+    }
+    return true;
+  } catch (e) {
+    toast(`Sound effect export failed: ${(e as Error).message}`, 'error');
+    return false;
   }
 }
 

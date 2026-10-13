@@ -47,6 +47,7 @@ function buildMenu() {
         { type: 'separator' },
         { label: 'Export WAV…', accelerator: 'CmdOrCtrl+E', click: () => send('export-wav') },
         { label: 'Export NSF…', accelerator: 'CmdOrCtrl+Shift+E', click: () => send('export-nsf') },
+        { label: 'Export Sound Effects…', click: () => send('export-sfx') },
         { type: 'separator' },
         isMac ? { role: 'close' } : { role: 'quit' },
       ],
@@ -199,6 +200,31 @@ ipcMain.handle('library-save', async (_e, text) => {
   await fs.writeFile(target + '.tmp', text, 'utf8');
   await fs.rename(target + '.tmp', target);
   return true;
+});
+
+// Export sound effects: write several files into a folder the user picks, replacing files of the same
+// names. Files whose bytes are already identical are left alone, so folder watchers only see real changes.
+ipcMain.handle('save-files', async (_e, files, defaultFolder) => {
+  const names = files.map((f) => String(f.name));
+  if (names.some((n) => n !== path.basename(n) || n.startsWith('.'))) throw new Error('Invalid file name');
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Choose a folder for the sound effects',
+    buttonLabel: 'Export here',
+    defaultPath: defaultFolder || undefined,
+    properties: ['openDirectory', 'createDirectory'],
+  });
+  if (result.canceled || !result.filePaths[0]) return null;
+  const folder = result.filePaths[0];
+  let written = 0;
+  for (let i = 0; i < files.length; i++) {
+    const target = path.join(folder, names[i]);
+    const bytes = Buffer.from(files[i].bytes);
+    const old = await fs.readFile(target).catch(() => null);
+    if (old && old.equals(bytes)) continue;
+    await fs.writeFile(target, bytes);
+    written++;
+  }
+  return { folder, written };
 });
 
 ipcMain.on('set-title', (_e, title) => {
