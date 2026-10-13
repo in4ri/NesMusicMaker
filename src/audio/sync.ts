@@ -68,7 +68,8 @@ export function playheadTick(frame: number) {
 export async function play() {
   const s = useStore.getState();
   if (scheduled) recompile();
-  const startFrame = s.playMode === 'song' ? Math.floor(s.songStartTick * framesPerTick(s.song) + 1e-6) : 0;
+  const startTick = s.playMode === 'song' ? s.songStartTick : s.patternCursor;
+  const startFrame = Math.floor(startTick * framesPerTick(s.song) + 1e-6);
   useStore.setState({ playing: true });
   await engine.play(startFrame);
 }

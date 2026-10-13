@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { useInput } from '../audio/liveInput';
-import { playheadTick, previewNote } from '../audio/sync';
+import { play, playheadTick, previewNote } from '../audio/sync';
 import { fitToChannel, lowestPitch, resolveOverlaps } from '../core/hardware';
 import { noteName } from '../core/tables';
 import { makeNote } from '../model/defaults';
@@ -50,13 +49,13 @@ type Drag =
   | { kind: 'box'; x0: number; y0: number; x1: number; y1: number; additive: string[] }
   | { kind: 'erase' }
   | { kind: 'velocity' }
-  | { kind: 'pan'; startX: number; startY: number; sx: number; sy: number };
+  | { kind: 'pan'; startX: number; startY: number; sx: number; sy: number }
+  | { kind: 'scrub' };
 
 export function PianoRoll() {
   const s = useStore();
   const pattern = currentPattern(s);
   const ch = s.selectedChannel;
-  useInput((i) => (i.record ? i.stepCursor : -1)); // redraw when the step cursor moves
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ w: 800, h: 400 });
@@ -362,10 +361,9 @@ export function PianoRoll() {
     g.fillStyle = '#252525';
     g.fillRect(0, 0, KEYS_W, RULER_H);
 
-    // Step-entry cursor (record armed while stopped)
-    const input = useInput.getState();
-    if (input.record && !st.playing) {
-      const x = geo.x(input.stepCursor);
+    // Cursor: where PAT playback starts, pastes land and step entry inserts (hidden while playing).
+    if (!st.playing) {
+      const x = geo.x(st.patternCursor);
       if (x >= KEYS_W) {
         g.fillStyle = '#5c94fc';
         g.fillRect(x, RULER_H, 2, geo.gridBottom - RULER_H);
@@ -456,10 +454,10 @@ export function PianoRoll() {
       return;
     }
     if (y < RULER_H) {
-      // Clicking the ruler moves the step-entry cursor.
+      // Click or drag the ruler to place the cursor.
       if (x > KEYS_W) {
-        const tick = Math.max(0, snapTick(geo.tickAt(x)));
-        if (tick < patternLength(st.song, pattern)) useInput.setState({ stepCursor: tick });
+        drag.current = { kind: 'scrub' };
+        setCursorAt(x);
       }
       return;
     }
@@ -523,11 +521,37 @@ export function PianoRoll() {
       return;
     }
 
-    if (e.shiftKey || e.metaKey || e.ctrlKey) {
-      drag.current = { kind: 'box', x0: x, y0: y, x1: x, y1: y, additive: e.shiftKey ? st.selectedNoteIds : [] };
+    // Select tool (or Shift/Ctrl with the pen): drag a box. A plain click on empty space clears the selection.
+    if (st.tool === 'select' || e.shiftKey || e.metaKey || e.ctrlKey) {
+      drag.current = { kind: 'box', x0: x, y0: y, x1: x, y1: y, additive: e.shiftKey || e.metaKey || e.ctrlKey ? st.selectedNoteIds : [] };
       return;
     }
 
+    createNoteAt(x, y);
+  };
+
+  /** Place the cursor at an x position (snapped), clamped to the pattern. */
+  const setCursorAt = (x: number) => {
+    const st = useStore.getState();
+    if (!pattern) return;
+    const tick = Math.max(0, snapTick(geometry().tickAt(x)));
+    const plen = patternLength(st.song, pattern);
+    st.set({ patternCursor: Math.min(tick, plen - st.snap) });
+  };
+
+  /** The instrument new notes get: the draw tool's chosen sound ('' = follow the channel). */
+  const drawInstrument = () => {
+    const st = useStore.getState();
+    const chosen = st.drawSound[ch] ?? '';
+    if (kind === 'dmc' || !chosen || chosen === st.song.channels[ch].instrument || !st.song.instruments.some((i) => i.id === chosen)) return '';
+    return chosen;
+  };
+
+  /** Create a note under the pointer and start dragging it. */
+  const createNoteAt = (x: number, y: number) => {
+    if (!pattern) return;
+    const st = useStore.getState();
+    const geo = geometry();
     // Create a note and start moving it.
     const row = rows[geo.rowAt(y)];
     if (!row || (kind === 'dmc' && !st.song.samples.length)) return;
@@ -537,7 +561,7 @@ export function PianoRoll() {
     }
     const tick = Math.max(0, snapTick(geo.tickAt(x)));
     if (tick >= patternLength(st.song, pattern)) return;
-    const note = makeNote(tick, lastLength.current, row.pitch, ''); // follows the channel's sound
+    const note = makeNote(tick, lastLength.current, row.pitch, drawInstrument());
     st.checkpoint();
     editPattern((p) => void p.notes[ch].push(note));
     st.set({ selectedNoteIds: [note.id] });
@@ -553,8 +577,9 @@ export function PianoRoll() {
       const geo = geometry();
       if (y > RULER_H && y < geo.gridBottom && x > KEYS_W) {
         const hit = hitTest(x, y);
-        canvas.style.cursor = hit ? (hit.edge ? 'ew-resize' : 'move') : 'default';
-      } else canvas.style.cursor = y >= geo.gridBottom ? 'ns-resize' : 'default';
+        canvas.style.cursor = hit ? (hit.edge ? 'ew-resize' : 'move') : useStore.getState().tool === 'draw' ? 'crosshair' : 'default';
+      } else if (y <= RULER_H && x > KEYS_W) canvas.style.cursor = 'pointer';
+      else canvas.style.cursor = y >= geo.gridBottom ? 'ns-resize' : x < KEYS_W ? 'pointer' : 'default';
       return;
     }
     const v = view.current;
@@ -568,6 +593,9 @@ export function PianoRoll() {
         break;
       case 'velocity':
         setVelocityAt(x, y);
+        break;
+      case 'scrub':
+        setCursorAt(x);
         break;
       case 'erase': {
         const hit = hitTest(x, y);
@@ -632,6 +660,12 @@ export function PianoRoll() {
     const d = drag.current;
     drag.current = null;
     if (!d || !pattern) return;
+    if (d.kind === 'scrub') {
+      // While playing a pattern, jump playback to the new cursor position.
+      const st = useStore.getState();
+      if (st.playing && st.playMode === 'pattern') void play();
+      return;
+    }
     if (d.kind === 'box') {
       const geo = geometry();
       const t0 = geo.tickAt(Math.min(d.x0, d.x1));
@@ -723,23 +757,9 @@ export function PianoRoll() {
       } else if (e.key === 'Escape') {
         st.set({ selectedNoteIds: [] });
       } else if (mod && (e.key === 'c' || e.key === 'x')) {
-        if (!selected.length) return;
-        e.preventDefault();
-        const min = Math.min(...selected.map((n) => n.tick));
-        const max = Math.max(...selected.map((n) => n.tick + n.length));
-        clipboard = { notes: selected.map((n) => ({ ...structuredClone(n), tick: n.tick - min })), span: Math.ceil((max - min) / PPQ) * PPQ };
-        if (e.key === 'x') {
-          st.update((song) => {
-            const pp = song.patterns.find((x) => x.id === p.id)!;
-            pp.notes[ch] = pp.notes[ch].filter((n) => !sel.has(n.id));
-          });
-          st.set({ selectedNoteIds: [] });
-        }
+        if (copyOrCut(e.key === 'x')) e.preventDefault();
       } else if (mod && e.key === 'v') {
-        if (!clipboard) return;
-        e.preventDefault();
-        const at = selected.length ? Math.min(...selected.map((n) => n.tick)) + clipboard.span : 0;
-        pasteNotes(p, clipboard.notes, at);
+        if (pasteAtCursor()) e.preventDefault();
       } else if (mod && e.key === 'd') {
         if (!selected.length) return;
         e.preventDefault();
@@ -772,6 +792,38 @@ export function PianoRoll() {
         });
       }
     };
+    /** Copy (or cut) the selected notes to the note clipboard. Returns false if nothing was selected. */
+    const copyOrCut = (cut: boolean) => {
+      const st = useStore.getState();
+      const p = currentPattern(st);
+      const sel = new Set(st.selectedNoteIds);
+      const selected = p ? p.notes[ch].filter((n) => sel.has(n.id)) : [];
+      if (!p || !selected.length) return false;
+      const min = Math.min(...selected.map((n) => n.tick));
+      const max = Math.max(...selected.map((n) => n.tick + n.length));
+      clipboard = { notes: selected.map((n) => ({ ...structuredClone(n), tick: n.tick - min })), span: Math.ceil((max - min) / PPQ) * PPQ };
+      if (cut) {
+        st.update((song) => {
+          const pp = song.patterns.find((x) => x.id === p.id)!;
+          pp.notes[ch] = pp.notes[ch].filter((n) => !sel.has(n.id));
+        });
+        st.set({ selectedNoteIds: [] });
+      }
+      return true;
+    };
+    /** Paste the note clipboard at the cursor. Returns false if there was nothing to paste. */
+    const pasteAtCursor = () => {
+      const st = useStore.getState();
+      const p = currentPattern(st);
+      if (!p || !clipboard) return false;
+      pasteNotes(p, clipboard.notes, st.patternCursor);
+      return true;
+    };
+    // In the desktop app, Cmd+C/X/V go to the Edit menu, which sends copy/cut/paste events instead of key presses.
+    const pianoRollActive = () => useStore.getState().view === 'pianoroll' && !isTyping({ target: document.activeElement } as unknown as KeyboardEvent);
+    const onCopy = (e: ClipboardEvent) => pianoRollActive() && copyOrCut(false) && e.preventDefault();
+    const onCut = (e: ClipboardEvent) => pianoRollActive() && copyOrCut(true) && e.preventDefault();
+    const onPaste = (e: ClipboardEvent) => pianoRollActive() && pasteAtCursor() && e.preventDefault();
     const pasteNotes = (p: Pattern, notes: Note[], at: number) => {
       const st = useStore.getState();
       const plen = patternLength(st.song, p);
@@ -787,12 +839,21 @@ export function PianoRoll() {
       st.set({ selectedNoteIds: fresh.map((n) => n.id) });
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    document.addEventListener('copy', onCopy);
+    document.addEventListener('cut', onCut);
+    document.addEventListener('paste', onPaste);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.removeEventListener('copy', onCopy);
+      document.removeEventListener('cut', onCut);
+      document.removeEventListener('paste', onPaste);
+    };
   }, [ch, rows, kind]);
 
   if (!pattern) return null;
   return (
     <div className="editor-body">
+      <ToolStrip />
       <div className="canvas-wrap" ref={wrapRef}>
         <canvas
           ref={canvasRef}
@@ -800,10 +861,49 @@ export function PianoRoll() {
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
+          onDoubleClick={(e) => {
+            // With the select tool, double-click empty space to add a note.
+            const st = useStore.getState();
+            if (st.tool !== 'select') return;
+            const { x, y } = localPos(e);
+            if (x <= KEYS_W || y <= RULER_H || y >= geometry().gridBottom || hitTest(x, y)) return;
+            createNoteAt(x, y);
+            onPointerUp(); // finish it like a click-and-release (resolves overlaps, keeps it selected)
+          }}
           onContextMenu={(e) => e.preventDefault()}
         />
       </div>
       <NotePanel />
+    </div>
+  );
+}
+
+/** Select/edit (arrow) and draw (pen) tools, down the left edge of the piano roll. */
+function ToolStrip() {
+  const tool = useStore((s) => s.tool);
+  const set = useStore((s) => s.set);
+  return (
+    <div className="tool-strip">
+      <button
+        className={tool === 'select' ? 'active' : ''}
+        title="Select tool: click notes to select, drag empty space for a selection box, click empty space to clear. Double-click to add a note."
+        aria-label="Select tool"
+        onClick={() => set({ tool: 'select' })}
+      >
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path d="M5 3 L5 19 L9.5 14.5 L12.5 21 L15 20 L12 13.5 L18 13.5 Z" fill="currentColor" />
+        </svg>
+      </button>
+      <button
+        className={tool === 'draw' ? 'active' : ''}
+        title="Draw tool: click to add notes with the chosen sound, drag to move, right-click to delete."
+        aria-label="Draw tool"
+        onClick={() => set({ tool: 'draw' })}
+      >
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path d="M4 20 L5 15 L15.5 4.5 L19.5 8.5 L9 19 Z M14 6 L18 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+        </svg>
+      </button>
     </div>
   );
 }

@@ -18,8 +18,6 @@ export interface InputState {
   chords: boolean;
   arpStyle: ArpStyle;
   arpSpeed: number;
-  /** Where step entry (recording while stopped) puts the next note, in pattern ticks. */
-  stepCursor: number;
 }
 
 export const useInput = create<InputState>(() => ({
@@ -28,7 +26,6 @@ export const useInput = create<InputState>(() => ({
   chords: true,
   arpStyle: 'up',
   arpSpeed: 1,
-  stepCursor: 0,
 }));
 
 // Keys currently down: key id → channel pitch, in press order.
@@ -183,15 +180,15 @@ function commitStep() {
   stepPitches.clear();
   if (!pattern || !snd) return;
   const length = patternLength(s.song, pattern);
-  const { stepCursor } = useInput.getState();
-  const tick = stepCursor >= length ? 0 : stepCursor;
+  const cursor = s.patternCursor;
+  const tick = cursor >= length ? 0 : cursor;
   const channel = heldChannel;
   const note = makeNote(tick, s.snap, snd.pitch, instrumentFor(channel), volumeFor(heldVelocity), snd.fx);
   s.update((song) => {
     const p = song.patterns.find((x) => x.id === pattern.id)!;
     p.notes[channel] = resolveOverlaps([...p.notes[channel], note], channel, new Set([note.id]));
   });
-  useInput.setState({ stepCursor: (tick + s.snap) % length });
+  useStore.setState({ patternCursor: (tick + s.snap) % length });
 }
 
 // ---------- Public API ----------
@@ -257,5 +254,5 @@ useInput.subscribe((s, prev) => {
   if (s.record !== prev.record) resetTake();
 });
 useStore.subscribe((s, prev) => {
-  if (s.selectedPatternId !== prev.selectedPatternId) useInput.setState({ stepCursor: 0 });
+  if (s.selectedPatternId !== prev.selectedPatternId) useStore.setState({ patternCursor: 0 });
 });

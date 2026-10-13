@@ -234,3 +234,16 @@ label { color: var(--text-dim); }
 .progress > div { height: 100%; background: var(--accent); transition: width 0.1s; }
 .button-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 4px; }
 .button-row button { padding: 3px 0; }
+
+/* Piano roll tools */
+.tool-strip { display: flex; flex-direction: column; gap: 4px; padding: 6px 4px; background: var(--bg-2); border-right: 1px solid var(--line); }
+.tool-strip button { width: 30px; height: 30px; padding: 0; display: flex; align-items: center; justify-content: center; }
+.tool-strip button.active { color: #1d1d1d; }
+.sound-palette { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 8px; }
+.sound-chip {
+  display: flex; align-items: center; gap: 5px; padding: 3px 5px; font-size: 11px; text-align: left;
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis; border: 1px solid var(--line);
+}
+.sound-chip .swatch { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+.sound-chip.on { border-color: var(--accent); background: var(--bg-4); color: var(--text); }
+.sound-chip.wide { grid-column: span 2; }

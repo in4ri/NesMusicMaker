@@ -28,6 +28,15 @@ export interface AppState {
   mutes: boolean[];
   solo: number; // -1 = none
   masterGain: number;
+  /** Piano roll tool: select/edit (arrow) or draw (pen). */
+  tool: 'select' | 'draw';
+  /** Sound the draw tool paints with, per channel ('' = the channel's sound). */
+  drawSound: string[];
+  /**
+   * Piano roll cursor, in ticks within the current pattern: PAT playback starts here, pastes land here,
+   * and step entry (record armed while stopped) inserts here.
+   */
+  patternCursor: number;
   /** Show the automation lanes under the playlist tracks. */
   showAutomation: boolean;
   /** Which lanes are visible, keyed by laneKey(channel, param). */
@@ -66,6 +75,9 @@ export const useStore = create<AppState>((set, get) => {
     mutes: CHANNELS.map(() => false),
     solo: -1,
     masterGain: 0.8,
+    tool: 'draw',
+    drawSound: CHANNELS.map(() => ''),
+    patternCursor: 0,
     showAutomation: true,
     automationVisible: { '0:volume': true, '1:volume': true, '2:volume': true, '3:volume': true },
 

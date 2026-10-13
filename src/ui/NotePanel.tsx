@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { toast } from '../actions';
+import { previewNote } from '../audio/sync';
 import { quantizeSong, type QuantizeScope, type QuantizeWhat } from '../core/quantize';
 import { currentPattern, useStore } from '../model/store';
 import { ARP_STYLES, CHANNELS, CHORD_SHAPES, PPQ, type ArpStyle, type Note, type NoteFx } from '../model/types';
@@ -95,6 +96,8 @@ export function NotePanel() {
           </select>
         </div>
       )}
+
+      {s.tool === 'draw' && kind !== 'dmc' && <SoundPalette />}
 
       <QuantizeControls hasSelection={notes.length > 0} />
 
@@ -246,7 +249,9 @@ export function NotePanel() {
 
       <h4>Mouse</h4>
       <ul className="help-list">
-        <li>Click: add note, drag to move</li>
+        <li>Ruler: click or drag to place the cursor (PAT playback starts there; Cmd+V pastes there)</li>
+        <li>Select tool: drag empty space to box-select, click empty space to clear, double-click to add a note</li>
+        <li>Draw tool: click to add a note with the chosen sound, drag to move</li>
         <li>Click a piano key: select all notes on it (Shift/Cmd-click: add more keys)</li>
         <li>Drag right edge: resize</li>
         <li>Right-click: delete</li>
@@ -264,6 +269,42 @@ export function NotePanel() {
         <li><span className="kbd">Del</span> delete selection</li>
       </ul>
     </div>
+  );
+}
+
+/** The draw tool's sound: pick one, draw notes, pick another, draw more. */
+function SoundPalette() {
+  const s = useStore();
+  const ch = s.selectedChannel;
+  const chosen = s.drawSound[ch] ?? '';
+  const channelSound = s.song.instruments.find((i) => i.id === s.song.channels[ch].instrument);
+  const pick = (id: string) => {
+    s.set({ drawSound: s.drawSound.map((v, i) => (i === ch ? id : v)) });
+    previewNote(ch, s.song.channels[ch].stepPitch, id);
+  };
+  const isOn = (id: string) => (id ? chosen === id && id !== channelSound?.id : !chosen || chosen === channelSound?.id);
+  return (
+    <>
+      <h4>Draw with</h4>
+      <div className="sound-palette">
+        <button
+          className={`sound-chip wide ${isOn('') ? 'on' : ''}`}
+          title="New notes follow the channel's sound (changing the channel's sound changes them too)"
+          onClick={() => pick('')}
+        >
+          <span className="swatch" style={{ background: channelSound?.color }} />
+          Channel sound ({channelSound?.name ?? 'none'})
+        </button>
+        {s.song.instruments
+          .filter((i) => i.id !== channelSound?.id)
+          .map((i) => (
+            <button key={i.id} className={`sound-chip ${isOn(i.id) ? 'on' : ''}`} title={`Draw notes with ${i.name}`} onClick={() => pick(i.id)}>
+              <span className="swatch" style={{ background: i.color }} />
+              {i.name}
+            </button>
+          ))}
+      </div>
+    </>
   );
 }
 

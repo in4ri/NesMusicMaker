@@ -33,7 +33,13 @@ export function PianoRollHelp() {
         key to hear it), and <b>left to right</b> is time. Each bar has 16 small steps.
       </p>
       <ul>
-        <li><b>Click</b> an empty spot to add a note. Drag it to move it, or drag its right edge to make it longer.</li>
+        <li>
+          <b>Tools</b> (left edge): the <b>pen</b> draws. Click an empty spot to add a note with the sound picked under <b>Draw with</b> on the right,
+          then pick another sound and keep drawing. The <b>arrow</b> selects: drag over empty space to box-select several notes, click empty space
+          to clear the selection, and double-click to add a note.
+        </li>
+        <li>Drag a note to move it, or drag its right edge to make it longer.</li>
+        <li><b>Cursor</b>: click or drag along the bar numbers at the top. PAT playback starts from it, Cmd+V pastes there, and with ● armed (and stopped) notes you play are entered there.</li>
         <li><b>Right-click</b> a note to delete it.</li>
         <li><b>Click a piano key</b> to select every note on that key, and Shift- or Cmd-click to add more keys. Then press <b>↑/↓</b> to move them up or down (hold Shift for a whole octave), which is handy for changing key.</li>
         <li><b>Volume lane</b> (bottom): drag the stalks to make notes louder or quieter.</li>
