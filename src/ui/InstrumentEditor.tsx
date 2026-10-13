@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { previewNote } from '../audio/sync';
 import { noteName } from '../core/tables';
 import { env, INSTRUMENT_COLORS } from '../model/defaults';
+import { ColorPicker } from './Popover';
 import { useStore } from '../model/store';
 import { CHANNELS, type Envelope, type EnvelopeKind, type Instrument } from '../model/types';
 
@@ -239,15 +240,13 @@ export function InstrumentEditor() {
     <div className="inst-editor">
       <div className="inst-header">
         <input type="text" value={inst.name} onFocus={() => s.checkpoint()} onChange={(e) => rename(e.target.value)} />
-        <select
+        <ColorPicker
           value={inst.color}
-          style={{ background: inst.color, color: '#111', width: 40 }}
-          onChange={(e) => s.update((song) => void (song.instruments.find((i) => i.id === inst.id)!.color = e.target.value))}
-        >
-          {INSTRUMENT_COLORS.map((c) => (
-            <option key={c} value={c} style={{ background: c }}>■</option>
-          ))}
-        </select>
+          colors={INSTRUMENT_COLORS}
+          title="Instrument colour (notes using it are drawn in this colour)"
+          align="left"
+          onChange={(c) => s.update((song) => void (song.instruments.find((i) => i.id === inst.id)!.color = c))}
+        />
         <div className="preview-keys">
           <label>Audition on</label>
           <select value={ch} onChange={(e) => s.set({ selectedChannel: Number(e.target.value) })}>

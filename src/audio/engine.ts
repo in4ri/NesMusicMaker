@@ -74,6 +74,16 @@ class AudioEngine {
     if (this.node) this.post({ type: 'previewUpdate', song, id });
   }
 
+  /** Play an NSF track exactly, by running its code on the audio thread. */
+  async playNsf(bytes: Uint8Array, track: number) {
+    await this.ensureStarted();
+    this.post({ type: 'nsfPlay', bytes, track });
+  }
+
+  stopNsf() {
+    if (this.node) this.post({ type: 'nsfStop' });
+  }
+
   setMuteMask(mask: number) {
     this.mask = mask;
     if (this.node) this.post({ type: 'mute', mask });

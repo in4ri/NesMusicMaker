@@ -201,3 +201,34 @@ label { color: var(--text-dim); }
 .hw-issue.error .hw-icon { color: var(--accent); }
 .hw-text { flex: 1; }
 .hw-title { color: var(--text); margin-bottom: 2px; }
+
+/* Colour swatch picker */
+.swatch-btn { width: 30px; height: 24px; padding: 0; border: 2px solid rgba(255, 255, 255, 0.25); border-radius: 5px; }
+.swatch-btn:hover { border-color: #fff; }
+.swatch-pop { width: auto; display: grid; grid-template-columns: repeat(4, 28px); gap: 6px; padding: 8px; }
+.swatch-choice { width: 28px; height: 28px; padding: 0; border: 2px solid transparent; border-radius: 5px; }
+.swatch-choice:hover { border-color: rgba(255, 255, 255, 0.6); }
+.swatch-choice.on { border-color: #fff; box-shadow: 0 0 0 2px var(--bg-2) inset; }
+
+/* "?" help */
+.help-anchor { display: inline-flex; }
+.help-btn {
+  width: 20px; height: 20px; padding: 0; border-radius: 50%; font-size: 11px; font-weight: 700; line-height: 1;
+  color: var(--accent); border-color: var(--accent); background: transparent; text-transform: none; letter-spacing: 0;
+}
+.help-btn:hover, .help-btn.active { background: var(--accent); color: #1b1d23; }
+.help-pop { width: 420px; max-height: 70vh; overflow-y: auto; text-transform: none; letter-spacing: 0; font-size: 12px; color: var(--text); }
+.help-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.help-head h4 { margin: 0; color: var(--accent); font-size: 13px; text-transform: none; letter-spacing: 0; }
+.help-close { padding: 0 6px; font-size: 11px; }
+.help-body p { margin: 6px 0; color: var(--text); }
+.help-body h5 { margin: 10px 0 4px; font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+.help-body ul { margin: 4px 0; padding-left: 18px; }
+.help-body li { margin-bottom: 4px; line-height: 1.45; }
+.rack-header-gap { display: inline-flex; align-items: center; }
+.tabs .help-anchor { align-self: center; margin-right: 6px; }
+
+/* NSF import */
+.warn-text { color: #ffd8a8 !important; background: #3d2a10; border-left: 3px solid var(--accent); padding: 6px 10px; border-radius: 4px; }
+.progress { height: 6px; background: #101216; border-radius: 3px; overflow: hidden; margin: 8px 0; }
+.progress > div { height: 100%; background: var(--accent); transition: width 0.1s; }

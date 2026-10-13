@@ -7,7 +7,7 @@ import { pulsePeriod } from '../src/core/tables';
 import { renderWav } from '../src/core/wav';
 import { demoSong, emptyPattern, makeNote } from '../src/model/defaults';
 import { newId, PPQ } from '../src/model/types';
-import { loadNsf } from './cpu6502';
+import { NsfMachine, parseNsf } from '../src/core/nsfFile';
 
 function zeroCrossingFreq(samples: Float32Array, sampleRate: number) {
   let crossings = 0;
@@ -128,21 +128,24 @@ describe('NSF export', () => {
 
     const nsf = buildNsf(c, { title: 'Test', author: 'Me', copyright: '2026' }, layout.used);
     expect(new TextDecoder().decode(nsf.subarray(0, 4))).toBe('NESM');
-    const { machine, init, play } = loadNsf(nsf);
+    const machine = new NsfMachine(parseNsf(nsf), null);
+    let apuWrites: [number, number][] = [];
+    machine.onApuWrite = (reg, v) => apuWrites.push([reg, v]);
 
-    machine.call(init);
-    expect(machine.apuWrites).toEqual(INIT_WRITES.map(([r, v]) => [r, v]));
+    machine.init(0);
+    // After the standard NSF-player APU reset, our INIT routine writes the init table.
+    expect(apuWrites.slice(-INIT_WRITES.length)).toEqual(INIT_WRITES.map(([r, v]) => [r, v]));
 
     // Play through the song twice to exercise the loop.
     const loopLen = c.frameCount - c.loopFrame;
     const total = c.frameCount + loopLen;
     for (let f = 0; f < total; f++) {
-      machine.apuWrites = [];
-      machine.call(play);
+      apuWrites = [];
+      machine.play();
       const cf = f < c.frameCount ? f : c.loopFrame + (f - c.frameCount);
       const expected: [number, number][] = [];
       for (let i = c.frameIndex[cf]; i < c.frameIndex[cf + 1]; i += 2) expected.push([c.writes[i], c.writes[i + 1]]);
-      expect(machine.apuWrites, `frame ${f}`).toEqual(expected);
+      expect(apuWrites, `frame ${f}`).toEqual(expected);
     }
 
     // DMC samples are visible at $C000 for the hardware to fetch.

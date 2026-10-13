@@ -299,10 +299,13 @@ export function framesPerTick(song: Song) {
 /** The end of the song in ticks: the end of the last clip, rounded up to a whole bar. */
 export function songEndTick(song: Song) {
   let end = 0;
+  let lastStart = -1;
   for (const clip of song.playlist) {
     const pattern = song.patterns.find((p) => p.id === clip.pattern);
     if (pattern) end = Math.max(end, clip.start + patternLength(song, pattern));
+    lastStart = Math.max(lastStart, clip.start);
   }
+  if (song.endTick && song.endTick > lastStart) return song.endTick;
   const bar = ticksPerBar(song);
   return Math.max(bar, Math.ceil(end / bar) * bar);
 }

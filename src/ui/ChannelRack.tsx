@@ -5,6 +5,8 @@ import { noteName } from '../core/tables';
 import { makeNote } from '../model/defaults';
 import { currentPattern, usePlayhead, useStore } from '../model/store';
 import { CHANNELS, TICKS_PER_STEP, type ChannelInfo } from '../model/types';
+import { ChannelRackHelp } from './HelpContent';
+import { HelpButton } from './Popover';
 
 export function pitchOptions(kind: ChannelInfo['kind'], sampleNames: string[], lowest = 24) {
   if (kind === 'noise') return Array.from({ length: 16 }, (_, i) => ({ value: i, label: `Noise ${i.toString(16).toUpperCase()}` }));
@@ -84,7 +86,11 @@ export function ChannelRack() {
     <div className="rack" onContextMenu={(e) => e.preventDefault()}>
       <PlayingStep steps={steps} />
       <div className="rack-row rack-header">
-        <span className="rack-header-gap" />
+        <span className="rack-header-gap">
+          <HelpButton title="The channel list" align="left">
+            <ChannelRackHelp />
+          </HelpButton>
+        </span>
         <span className="rack-select" title="The instrument this whole channel plays with">Sound</span>
         <span className="rack-pitch" title="The note a step plays">Step note</span>
         <span>Steps: click to add or remove, drag to paint</span>

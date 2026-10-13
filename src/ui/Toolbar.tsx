@@ -7,6 +7,8 @@ import { CHANNELS, PPQ, ticksPerBar } from '../model/types';
 import { PATTERN_COLORS } from '../model/defaults';
 import { HardwareButton } from './HardwareCheck';
 import { MidiMenu, RecordButton } from './MidiControls';
+import { startNsfImport } from './NsfImportDialog';
+import { ColorPicker } from './Popover';
 
 function Position() {
   const frame = usePlayhead((s) => s.frame);
@@ -124,16 +126,13 @@ export function Toolbar({ onHelp }: { onHelp: () => void }) {
                 <option key={b} value={b}>{b} bar{b > 1 ? 's' : ''}</option>
               ))}
             </select>
-            <select
+            <ColorPicker
               value={pattern.color}
-              title="Pattern colour"
-              style={{ background: pattern.color, color: '#111', width: 34 }}
-              onChange={(e) => s.update((song) => void (song.patterns.find((p) => p.id === pattern.id)!.color = e.target.value))}
-            >
-              {PATTERN_COLORS.map((c) => (
-                <option key={c} value={c} style={{ background: c }}>■</option>
-              ))}
-            </select>
+              colors={PATTERN_COLORS}
+              title="Pattern colour (as shown in the playlist)"
+              align="left"
+              onChange={(c) => s.update((song) => void (song.patterns.find((p) => p.id === pattern.id)!.color = c))}
+            />
           </>
         )}
       </div>
@@ -158,6 +157,7 @@ export function Toolbar({ onHelp }: { onHelp: () => void }) {
       </div>
       <div className="sep" />
       <MidiMenu />
+      <button title="Import an NES music file (.nsf) as a new project" onClick={startNsfImport}>Import NSF</button>
       <div style={{ flex: 1 }} />
       <div className="group" title="Master volume">
         <label>Vol</label>

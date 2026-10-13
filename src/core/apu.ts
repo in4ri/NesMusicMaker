@@ -359,6 +359,8 @@ export class Apu {
   muteMask = 0;
   /** Most recent per-channel levels, normalised 0..1 (for meters). */
   readonly meters = new Float32Array(CHANNEL_COUNT);
+  /** Counts DMC sample starts triggered via $4015 (used by the NSF importer). */
+  dmcTriggers = 0;
 
   private readonly cyclesPerSample: number;
   private cycleFraction = 0;
@@ -402,6 +404,7 @@ export class Apu {
         if (this.dmc.bytesRemaining === 0) {
           this.dmc.restart();
           this.dmc.fill();
+          this.dmcTriggers++;
         }
       } else {
         this.dmc.bytesRemaining = 0;
@@ -415,6 +418,17 @@ export class Apu {
         this.clockHalf();
       }
     }
+  }
+
+  /** $4015 read: which channels are still sounding (length counters / DMC bytes left). */
+  readStatus() {
+    return (
+      (this.pulse1.length > 0 ? 1 : 0) |
+      (this.pulse2.length > 0 ? 2 : 0) |
+      (this.triangle.length > 0 ? 4 : 0) |
+      (this.noise.length > 0 ? 8 : 0) |
+      (this.dmc.bytesRemaining > 0 ? 0x10 : 0)
+    );
   }
 
   private clockQuarter() {

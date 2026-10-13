@@ -198,6 +198,8 @@ export interface Song {
   channels: ChannelSettings[];
   /** Song-mode automation lanes (applied in song playback and exports, not pattern mode). */
   automation: AutomationLane[];
+  /** Exact end of the song in ticks (set by NSF import so it loops at the right moment). Ignored once a clip starts after it. */
+  endTick?: number;
 }
 
 export const PLAYLIST_TRACKS = 8;

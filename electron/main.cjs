@@ -43,6 +43,7 @@ function buildMenu() {
         { label: 'Save As…', accelerator: 'CmdOrCtrl+Shift+S', click: () => send('save-as') },
         { type: 'separator' },
         { label: 'Import MIDI File…', accelerator: 'CmdOrCtrl+I', click: () => send('import-midi') },
+        { label: 'Import NSF File…', click: () => send('import-nsf') },
         { type: 'separator' },
         { label: 'Export WAV…', accelerator: 'CmdOrCtrl+E', click: () => send('export-wav') },
         { label: 'Export NSF…', accelerator: 'CmdOrCtrl+Shift+E', click: () => send('export-nsf') },

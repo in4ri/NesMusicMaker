@@ -11,7 +11,10 @@ import { InstrumentEditor } from './ui/InstrumentEditor';
 import { isTyping, PianoRoll } from './ui/PianoRoll';
 import { Playlist } from './ui/Playlist';
 import { HardwareCheckDialog } from './ui/HardwareCheck';
+import { InstrumentHelp, PianoRollHelp, PlaylistHelp } from './ui/HelpContent';
+import { HelpButton } from './ui/Popover';
 import { MidiImportDialog, startMidiImport } from './ui/MidiImportDialog';
+import { NsfImportDialog, startNsfImport } from './ui/NsfImportDialog';
 import { Toolbar } from './ui/Toolbar';
 
 // Computer keyboard piano (layout-independent key codes), FL/tracker style.
@@ -42,6 +45,7 @@ function runCommand(cmd: string) {
     case 'redo': return typing ? void document.execCommand('redo') : s.redo();
     case 'select-all': return typing ? void document.execCommand('selectAll') : selectAllNotes();
     case 'import-midi': return void startMidiImport();
+    case 'import-nsf': return void startNsfImport();
   }
 }
 
@@ -210,6 +214,21 @@ export function App() {
               <button className={view === 'instrument' ? 'active' : ''} onClick={() => set({ view: 'instrument' })}>Instrument</button>
               <div className="spacer" />
               <span className="tab-info">{info}</span>
+              {view === 'pianoroll' && (
+                <HelpButton title="The piano roll">
+                  <PianoRollHelp />
+                </HelpButton>
+              )}
+              {view === 'playlist' && (
+                <HelpButton title="The playlist">
+                  <PlaylistHelp />
+                </HelpButton>
+              )}
+              {view === 'instrument' && (
+                <HelpButton title="Instruments">
+                  <InstrumentHelp />
+                </HelpButton>
+              )}
             </div>
             {view === 'pianoroll' && <PianoRoll key="pr" />}
             {view === 'playlist' && <Playlist />}
@@ -219,6 +238,7 @@ export function App() {
       </div>
       <MidiImportDialog />
       <HardwareCheckDialog />
+      <NsfImportDialog />
       <Toasts />
       {help && <Help onClose={() => setHelp(false)} />}
     </div>
