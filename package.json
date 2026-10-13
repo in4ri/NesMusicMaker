@@ -3,7 +3,10 @@
   "productName": "NES Music Maker",
   "version": "0.1.0",
   "description": "An FL Studio-style sequencer for composing NES (2A03) music",
-  "author": "Scott McCulloch",
+  "author": {
+    "name": "Scott Made a Thing",
+    "email": "80927712+in4ri@users.noreply.github.com"
+  },
   "license": "MIT",
   "private": true,
   "type": "module",
