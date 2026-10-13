@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useInput } from '../audio/liveInput';
 import { playheadTick, previewNote } from '../audio/sync';
+import { fitToChannel, lowestPitch, resolveOverlaps } from '../core/hardware';
 import { noteName } from '../core/tables';
 import { makeNote } from '../model/defaults';
 import { currentPattern, usePlayhead, useStore } from '../model/store';
 import { CHANNELS, PPQ, TICKS_PER_STEP, newId, patternLength, type Note, type Pattern, type Song } from '../model/types';
+import { toast } from '../actions';
 import { NotePanel } from './NotePanel';
 
 const KEYS_W = 64;
@@ -43,7 +45,7 @@ export function channelRows(ch: number, song: Song): Row[] {
 let clipboard: { notes: Note[]; span: number } | null = null;
 
 type Drag =
-  | { kind: 'move'; startX: number; startY: number; hitId: string; orig: Map<string, { tick: number; pitch: number }>; lastPitch: number }
+  | { kind: 'move'; startX: number; startY: number; hitId: string; orig: Map<string, { tick: number; pitch: number }>; lastPitch: number; created: boolean }
   | { kind: 'resize'; startX: number; orig: Map<string, number> }
   | { kind: 'box'; x0: number; y0: number; x1: number; y1: number; additive: string[] }
   | { kind: 'erase' }
@@ -66,6 +68,9 @@ export function PianoRoll() {
   const kind = CHANNELS[ch].kind;
   const laneH = kind === 'dmc' ? 0 : LANE_H;
   const rowH = kind === 'dmc' ? 28 : kind === 'noise' ? 20 : view.current.rowH;
+  // Pulse channels can't play below ~A1: rows under this index are out of range.
+  const lowest = kind === 'pulse' ? lowestPitch(ch, s.song.region) : -1;
+  const lowIdx = lowest >= 0 ? rows.findIndex((r) => r.pitch === lowest) : rows.length - 1;
 
   useLayoutEffect(() => {
     const el = wrapRef.current!;
@@ -130,7 +135,10 @@ export function PianoRoll() {
     const tpb = song.beatsPerBar * PPQ;
     const W = size.w;
     const selected = new Set(st.selectedNoteIds);
-    const instColor = new Map(song.instruments.map((i) => [i.id, i.color]));
+    const colorMap = new Map(song.instruments.map((i) => [i.id, i.color]));
+    const channelSound = song.channels[ch]?.instrument ?? '';
+    // Notes without their own instrument use the channel's sound.
+    const instColor = { get: (id: string) => colorMap.get(id || channelSound) };
 
     g.fillStyle = '#1e2128';
     g.fillRect(0, 0, W, size.h);
@@ -148,6 +156,26 @@ export function PianoRoll() {
       g.fillStyle = row.c ? '#454b5a' : '#20232a';
       g.fillRect(KEYS_W, y + rowH - 1, W, 1);
     });
+
+    // Out-of-range rows (pulse below its lowest note): hatched.
+    if (lowIdx < rows.length - 1) {
+      const top = geo.y(lowIdx + 1);
+      if (top < geo.gridBottom) {
+        g.fillStyle = 'rgba(0,0,0,0.45)';
+        g.fillRect(KEYS_W, top, W - KEYS_W, geo.gridBottom - top);
+        g.strokeStyle = 'rgba(255,107,107,0.18)';
+        g.lineWidth = 1;
+        g.beginPath();
+        for (let x = KEYS_W - (geo.gridBottom - top); x < W; x += 12) {
+          g.moveTo(x, geo.gridBottom);
+          g.lineTo(x + (geo.gridBottom - top), top);
+        }
+        g.stroke();
+        g.fillStyle = '#ff8787';
+        g.font = `11px ${getComputedStyle(document.body).fontFamily}`;
+        g.fillText(`Pulse channels can't play below ${noteName(lowest)}`, KEYS_W + 10, top + 14);
+      }
+    }
 
     // Vertical grid
     const t0 = Math.max(0, Math.floor(geo.tickAt(KEYS_W)));
@@ -235,6 +263,20 @@ export function PianoRoll() {
         g.clip();
         g.fillText(label, x + 3, y + rowH / 2 + 0.5);
         g.restore();
+      }
+    }
+
+    // Overlaps (a channel plays one note at a time): the part that will be cut off is shown in red.
+    {
+      const sorted = [...pattern.notes[ch]].sort((a, b) => a.tick - b.tick);
+      for (let i = 0; i < sorted.length - 1; i++) {
+        const a = sorted[i], next = sorted[i + 1];
+        if (a.tick + a.length <= next.tick) continue;
+        const ri = rowIndex.get(a.pitch);
+        if (ri === undefined) continue;
+        const x0 = geo.x(next.tick), x1 = geo.x(a.tick + a.length);
+        g.fillStyle = 'rgba(255,60,60,0.55)';
+        g.fillRect(x0, geo.y(ri) + 1, Math.max(2, x1 - x0), rowH - 2);
       }
     }
 
@@ -427,7 +469,7 @@ export function PianoRoll() {
     }
     if (x < KEYS_W) {
       const row = rows[geo.rowAt(y)];
-      if (row) audition({ pitch: row.pitch, instrument: st.song.channels[ch].instrument, volume: 15, fx: {} });
+      if (row && geo.rowAt(y) <= lowIdx) audition({ pitch: row.pitch, instrument: '', volume: 15, fx: {} });
       return;
     }
 
@@ -458,7 +500,7 @@ export function PianoRoll() {
       if (hit.edge) {
         drag.current = { kind: 'resize', startX: x, orig: new Map(notes.map((n) => [n.id, n.length])) };
       } else {
-        drag.current = { kind: 'move', startX: x, startY: y, hitId: hit.note.id, orig: new Map(notes.map((n) => [n.id, { tick: n.tick, pitch: n.pitch }])), lastPitch: hit.note.pitch };
+        drag.current = { kind: 'move', startX: x, startY: y, hitId: hit.note.id, orig: new Map(notes.map((n) => [n.id, { tick: n.tick, pitch: n.pitch }])), lastPitch: hit.note.pitch, created: false };
         audition(hit.note);
       }
       return;
@@ -472,14 +514,17 @@ export function PianoRoll() {
     // Create a note and start moving it.
     const row = rows[geo.rowAt(y)];
     if (!row || (kind === 'dmc' && !st.song.samples.length)) return;
+    if (geo.rowAt(y) > lowIdx) {
+      toast(`The pulse channels can't play below ${noteName(lowest)}. Use the Triangle for low bass.`, 'error');
+      return;
+    }
     const tick = Math.max(0, snapTick(geo.tickAt(x)));
     if (tick >= patternLength(st.song, pattern)) return;
-    const instrument = kind === 'dmc' ? '' : st.song.channels[ch].instrument || st.song.instruments[0]?.id;
-    const note = makeNote(tick, lastLength.current, row.pitch, instrument);
+    const note = makeNote(tick, lastLength.current, row.pitch, ''); // follows the channel's sound
     st.checkpoint();
     editPattern((p) => void p.notes[ch].push(note));
     st.set({ selectedNoteIds: [note.id] });
-    drag.current = { kind: 'move', startX: x, startY: y, hitId: note.id, orig: new Map([[note.id, { tick, pitch: row.pitch }]]), lastPitch: row.pitch };
+    drag.current = { kind: 'move', startX: x, startY: y, hitId: note.id, orig: new Map([[note.id, { tick, pitch: row.pitch }]]), lastPitch: row.pitch, created: true };
     audition(note);
   };
 
@@ -534,8 +579,15 @@ export function PianoRoll() {
         const hitOrig = d.orig.get(d.hitId)!;
         const dt = snapTick(hitOrig.tick + (x - d.startX) / v.pxPerTick, 'round') - hitOrig.tick;
         const hitRow = rows.findIndex((r) => r.pitch === hitOrig.pitch);
-        const newRow = Math.max(0, Math.min(rows.length - 1, hitRow + Math.round((y - d.startY) / rowH)));
-        const dRow = newRow - hitRow;
+        // Keep every moved note inside the playable range.
+        let maxDown = Infinity, maxUp = Infinity;
+        d.orig.forEach((o) => {
+          const ri = rows.findIndex((r) => r.pitch === o.pitch);
+          maxDown = Math.min(maxDown, lowIdx - ri);
+          maxUp = Math.min(maxUp, ri);
+        });
+        const dRow = Math.max(-maxUp, Math.min(maxDown, Math.round((y - d.startY) / rowH)));
+        const newRow = hitRow + dRow;
         let minTick = Infinity;
         d.orig.forEach((o) => (minTick = Math.min(minTick, o.tick)));
         const dtClamped = Math.max(dt, -minTick);
@@ -574,11 +626,28 @@ export function PianoRoll() {
       useStore.getState().set({ selectedNoteIds: [...new Set([...d.additive, ...ids])] });
       draw();
     }
-    if (d.kind === 'move') {
-      // Remove notes that ended up entirely outside the pattern.
+    if (d.kind === 'move' || d.kind === 'resize') {
       const st = useStore.getState();
       const plen = patternLength(st.song, pattern);
-      if (currentPattern(st)!.notes[ch].some((n) => n.tick >= plen)) editPattern((p) => void (p.notes[ch] = p.notes[ch].filter((n) => n.tick < plen)));
+      const moved = new Set(d.orig.keys());
+      // Clicking a new note onto the start of another (pulse/triangle) makes an arpeggio chord; otherwise the edited notes win.
+      const mode = d.kind === 'move' && d.created ? 'chord' : 'replace';
+      editPattern((p) => {
+        p.notes[ch] = resolveOverlaps(
+          p.notes[ch].filter((n) => n.tick < plen), // notes dragged past the end are removed
+          ch,
+          moved,
+          mode,
+        );
+      });
+      const after = currentPattern(useStore.getState())!.notes[ch];
+      const ids = new Set(after.map((n) => n.id));
+      let sel = useStore.getState().selectedNoteIds.filter((id) => ids.has(id));
+      if (!sel.length && d.kind === 'move' && d.created) {
+        const merged = after.find((n) => n.tick === d.orig.get(d.hitId)!.tick);
+        if (merged) sel = [merged.id];
+      }
+      useStore.getState().set({ selectedNoteIds: sel });
     }
   };
 
@@ -667,7 +736,8 @@ export function PianoRoll() {
         const dir = e.key === 'ArrowUp' ? 1 : -1;
         const amount = e.shiftKey && (kind === 'pulse' || kind === 'triangle') ? 12 : 1;
         const pitches = rows.map((r) => r.pitch);
-        const lo = Math.min(...pitches), hi = Math.max(...pitches);
+        const lo = kind === 'pulse' ? lowestPitch(ch, st.song.region) : Math.min(...pitches);
+        const hi = Math.max(...pitches);
         st.update((song) => {
           const pp = song.patterns.find((x) => x.id === p.id)!;
           for (const n of pp.notes[ch]) if (sel.has(n.id)) n.pitch = Math.max(lo, Math.min(hi, n.pitch + dir * amount));
@@ -681,6 +751,7 @@ export function PianoRoll() {
         st.update((song) => {
           const pp = song.patterns.find((x) => x.id === p.id)!;
           for (const n of pp.notes[ch]) if (sel.has(n.id)) n.tick += dt;
+          pp.notes[ch] = resolveOverlaps(pp.notes[ch], ch, sel);
         });
       }
     };
@@ -689,7 +760,13 @@ export function PianoRoll() {
       const plen = patternLength(st.song, p);
       const fresh = notes.map((n) => ({ ...structuredClone(n), id: newId('n'), tick: n.tick + at })).filter((n) => n.tick < plen);
       if (kind === 'dmc') fresh.forEach((n) => (n.instrument = ''));
-      st.update((song) => void song.patterns.find((x) => x.id === p.id)!.notes[ch].push(...fresh));
+      // Notes pasted from another channel may be too low for a pulse channel.
+      fresh.forEach((n) => (n.pitch = fitToChannel(n.pitch, ch, st.song.region)));
+      const ids = new Set(fresh.map((n) => n.id));
+      st.update((song) => {
+        const pp = song.patterns.find((x) => x.id === p.id)!;
+        pp.notes[ch] = resolveOverlaps([...pp.notes[ch], ...fresh], ch, ids);
+      });
       st.set({ selectedNoteIds: fresh.map((n) => n.id) });
     };
     window.addEventListener('keydown', onKey);

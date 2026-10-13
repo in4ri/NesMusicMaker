@@ -94,6 +94,9 @@ label { color: var(--text-dim); }
 .rack { background: var(--bg-2); border-bottom: 1px solid var(--line); padding: 6px 8px; overflow-x: auto; }
 .rack-row { display: flex; align-items: center; gap: 6px; height: 30px; }
 .rack-row > * { flex-shrink: 0; }
+.rack-header { height: 16px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-dim); }
+.rack-header > span { padding-left: 4px; white-space: nowrap; }
+.rack-header-gap { width: 162px; }
 .rack-row .led { width: 8px; height: 8px; border-radius: 50%; background: #333; flex-shrink: 0; }
 .rack-btn { width: 22px; height: 18px; padding: 0; font-size: 10px; border-radius: 3px; }
 .rack-btn.mute { background: var(--green); border-color: var(--green); color: #111; }
@@ -105,7 +108,7 @@ label { color: var(--text-dim); }
 }
 .rack-name.selected { background: var(--bg-4); outline: 1px solid var(--accent); }
 .rack-select { width: 120px; padding: 2px 4px; }
-.rack-pitch { width: 62px; padding: 2px 4px; }
+.rack-pitch { width: 72px; padding: 2px 4px; }
 .steps { display: flex; gap: 2px; }
 .steps .beat { display: flex; gap: 2px; margin-right: 4px; }
 .step {
@@ -185,3 +188,16 @@ label { color: var(--text-dim); }
 .lane-row { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
 .lane-row-name { width: 34px; border-left: 3px solid; padding-left: 5px; color: var(--text-dim); font-size: 11px; }
 .lane-row button { font-size: 11px; padding: 1px 6px; }
+
+/* Hardware check */
+.hw-badge { font-weight: 600; }
+.hw-badge.ok { color: var(--green); }
+.hw-badge.warn { background: #5c3d10; border-color: var(--accent); color: #ffd8a8; }
+.hw-ok { color: var(--green) !important; font-size: 14px; }
+.hw-list { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+.hw-issue { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; background: var(--bg-3); border-left: 3px solid var(--accent); }
+.hw-issue.warning { border-left-color: var(--accent-2); }
+.hw-icon { font-size: 16px; }
+.hw-issue.error .hw-icon { color: var(--accent); }
+.hw-text { flex: 1; }
+.hw-title { color: var(--text); margin-bottom: 2px; }

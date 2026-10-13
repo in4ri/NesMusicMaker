@@ -111,26 +111,27 @@ export function demoSong(): Song {
   ];
   for (const [step, pitch, len] of melody) {
     const fx: NoteFx = len >= 4 ? { vibratoDepth: 3, vibratoSpeed: 6 } : {};
-    lead.push(makeNote(step * S, len * S, pitch, id('Lead 25%'), 15, fx));
+    lead.push(makeNote(step * S, len * S, pitch, '', 15, fx));
   }
 
   const progression: [number, number[]][] = [[69, [0, 3, 7]], [65, [0, 4, 7]], [72, [0, 4, 7]], [67, [0, 4, 7]]];
   progression.forEach(([pitch, arp], i) => {
-    chords.push(makeNote(i * 8 * S, 8 * S, pitch, id('Square 50%'), 7, { arp }));
+    chords.push(makeNote(i * 8 * S, 8 * S, pitch, '', 7, { arp }));
   });
 
   const roots = [45, 41, 48, 43];
   roots.forEach((root, i) => {
-    for (let k = 0; k < 4; k++) bass.push(makeNote((i * 8 + k * 2) * S, 2 * S, k % 2 ? root + 12 : root, id('Triangle Bass')));
+    for (let k = 0; k < 4; k++) bass.push(makeNote((i * 8 + k * 2) * S, 2 * S, k % 2 ? root + 12 : root, ''));
   });
 
   for (let bar = 0; bar < 2; bar++) {
     const o = bar * 16;
     for (const s of [0, 8, 10]) drums.push(makeNote((o + s) * S, S, 6, id('Noise Kick')));
-    for (const s of [4, 12]) drums.push(makeNote((o + s) * S, S, 9, id('Noise Snare')));
+    for (const s of [4, 12]) drums.push(makeNote((o + s) * S, S, 9, ''));
     for (const s of [2, 6, 14]) drums.push(makeNote((o + s) * S, S, 15, id('Closed Hat'), 12));
   }
 
+  song.channels[1].instrument = id('Square 50%');
   song.patterns = [pattern];
   song.playlist = [
     { id: newId('c'), pattern: pattern.id, track: 0, start: 0 },

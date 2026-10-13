@@ -136,6 +136,7 @@ export interface Note {
   /** MIDI pitch for pulse/triangle; 0..15 for noise (higher = higher pitch); sample index for DMC. */
   pitch: number;
   volume: number; // 0..15
+  /** Instrument id for this note only, or '' to use the channel's sound (the normal case). */
   instrument: string;
   fx: NoteFx;
 }
@@ -173,9 +174,9 @@ export interface AutomationLane {
 
 
 export interface ChannelSettings {
-  /** Default pitch for notes created from the step sequencer. */
+  /** Pitch for notes created from the step sequencer. */
   stepPitch: number;
-  /** Default instrument for new notes on this channel. */
+  /** The channel's sound: every note without its own instrument uses this. */
   instrument: string;
 }
 

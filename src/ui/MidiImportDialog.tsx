@@ -62,6 +62,7 @@ function applyImport() {
       song.playlist = r.clips;
       song.loopStart = 0;
       song.automation = [];
+      r.channelSounds.forEach((inst, ch) => (song.channels[ch].instrument = inst));
     } else {
       song.patterns.push(...r.patterns);
       song.playlist.push(...r.clips);

@@ -214,7 +214,7 @@ function simulateChannel(
         }
         continue;
       }
-      const inst = ctx.instruments.get(ev.note.instrument) ?? ctx.fallbackInstrument;
+      const inst = ctx.instruments.get(ev.note.instrument || ctx.song.channels[ch]?.instrument) ?? ctx.fallbackInstrument;
       const glide = ev.note.fx.glide ?? 0;
       if (glide > 0 && voice && !voice.finished) {
         // Legato glide: keep the envelopes running, slide from the previous pitch.

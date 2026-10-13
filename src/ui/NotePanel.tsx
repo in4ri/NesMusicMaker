@@ -84,8 +84,8 @@ export function NotePanel() {
         </select>
       </div>
       {kind !== 'dmc' && (
-        <div className="field" title="Instrument used for new notes on this channel">
-          <label>Draw with</label>
+        <div className="field" title="The instrument this whole channel plays with (same as the dropdown in the channel rack)">
+          <label>Channel sound</label>
           <select value={s.song.channels[ch].instrument} onChange={(e) => s.update((song) => void (song.channels[ch].instrument = e.target.value))}>
             {s.song.instruments.map((i) => (
               <option key={i.id} value={i.id}>{i.name}</option>
@@ -100,11 +100,18 @@ export function NotePanel() {
           {kind !== 'dmc' && (
             <div className="field">
               <label>Instrument</label>
-              <select value={common(notes, (n) => n.instrument) ?? ''} onChange={(e) => edit((n) => void (n.instrument = e.target.value), true)}>
-                {common(notes, (n) => n.instrument) === undefined && <option value="">(mixed)</option>}
-                {s.song.instruments.map((i) => (
-                  <option key={i.id} value={i.id}>{i.name}</option>
-                ))}
+              <select
+                value={common(notes, (n) => n.instrument) ?? 'mixed'}
+                title="Notes normally use the channel's sound. Pick an instrument here to give just these notes a different one."
+                onChange={(e) => e.target.value !== 'mixed' && edit((n) => void (n.instrument = e.target.value), true)}
+              >
+                {common(notes, (n) => n.instrument) === undefined && <option value="mixed">(mixed)</option>}
+                <option value="">Channel sound ({s.song.instruments.find((i) => i.id === s.song.channels[ch].instrument)?.name ?? 'none'})</option>
+                <optgroup label="This note only">
+                  {s.song.instruments.map((i) => (
+                    <option key={i.id} value={i.id}>{i.name}</option>
+                  ))}
+                </optgroup>
               </select>
             </div>
           )}

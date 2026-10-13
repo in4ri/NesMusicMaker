@@ -41,6 +41,17 @@ Each channel plays one note at a time. The chip has no hardware effects: vibrato
   - **NSF**: a real NES music file that plays in NSF players and emulators (NSFPlay, Game Music Emu, Mesen, etc.), or on hardware via a flash cart. It loops from the song's loop point.
 - Undo/redo, a computer-keyboard piano (Z–M and Q–U rows; `-`/`=` change octave), NTSC/PAL, and `.nesmm` project files (JSON).
 
+### Real-hardware guardrails
+
+Everything the app plays is NES sound-chip data, the same data that goes into the NSF. The editor keeps your drawing honest too:
+
+- **Pulse range:** notes below about A1 are shaded in the piano roll and can't be placed. Keyboard and MIDI notes that low move up an octave.
+- **One note per channel:** a note is shortened where the next one starts, and overlaps show in red while dragging. Clicking a note onto the start of another (pulse/triangle) makes an arpeggio chord.
+- **Playlist clashes:** clips that play the same channel at the same time are marked with a red ⚠.
+- **Hardware check** (toolbar ✓ NES / ⚠ n): lists anything that won't play as drawn, with one-click fixes. WAV/NSF export opens it first if there are problems.
+
+Mute/Solo, the Vol slider and PAT mode are listening aids only; exports always contain the full song with every channel.
+
 ### Why there's no panning
 
 The NES outputs **mono**: all five channels are mixed into one signal, so there's nothing to pan, and an NSF file can't carry stereo. Some emulators fake stereo, but it wouldn't play back that way on real hardware. The automation that maps onto real hardware is volume (done). Pulse duty-cycle sweeps, fine detune and tempo changes would also be possible.
