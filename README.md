@@ -1,6 +1,6 @@
 # NES Music Maker
 
-An FL Studio-style sequencer for writing music for the Nintendo Entertainment System. It has a channel rack with a step sequencer, a piano roll, a playlist and an instrument editor, all limited to the real NES sound chip (the 2A03 APU).
+This is a COMPLETELY VIBE-CODED, FL Studio-style sequencer for writing music for the Nintendo Entertainment System. It has a channel rack with a step sequencer, a piano roll, a playlist and an instrument editor, all limited to the real NES sound chip (the 2A03 APU).
 
 It runs on macOS, Windows and Linux (Electron + TypeScript + React).
 
@@ -48,7 +48,7 @@ Each channel plays one note at a time. The chip has no hardware effects: vibrato
 
 ### Real-hardware guardrails
 
-Everything the app plays is NES sound-chip data, the same data that goes into the NSF. The editor keeps your drawing honest too:
+Everything the app plays is NES sound-chip data, the same data that goes into the NSF.
 
 - **Pulse range:** notes below about A1 are shaded in the piano roll and can't be placed. Keyboard and MIDI notes that low move up an octave.
 - **One note per channel:** a note is shortened where the next one starts, and overlaps show in red while dragging. Clicking a note onto the start of another (pulse/triangle) makes an arpeggio chord.
@@ -56,10 +56,6 @@ Everything the app plays is NES sound-chip data, the same data that goes into th
 - **Hardware check** (toolbar ✓ NES / ⚠ n): lists anything that won't play as drawn, with one-click fixes. WAV/NSF export opens it first if there are problems.
 
 Mute/Solo, the Vol slider and PAT mode are listening aids only; exports always contain the full song with every channel.
-
-### Why there's no panning
-
-The NES outputs **mono**: all five channels are mixed into one signal, so there's nothing to pan, and an NSF file can't carry stereo. Some emulators fake stereo, but it wouldn't play back that way on real hardware. The automation that maps onto real hardware is volume (done). Pulse duty-cycle sweeps, fine detune and tempo changes would also be possible.
 
 ## Getting started
 
@@ -87,9 +83,6 @@ npm run dist:win     # NSIS installer + portable .exe
 npm run dist:linux   # AppImage + .deb
 ```
 
-Output goes to `release/`. Build each platform on its own OS, or push to GitHub: `.github/workflows/build.yml` builds all three and uploads them as workflow artifacts.
-
-The builds are **unsigned**. On macOS, right-click the app and choose *Open* the first time. On Windows, choose *More info → Run anyway* in SmartScreen.
 
 ## How it works
 
